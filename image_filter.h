@@ -21,7 +21,7 @@ namespace image_filter {
 
 		FilterFunc operator()() const {
 			FilterFunc f(_h, _w, 1.0);
-			return f/(_h*_w);
+			return f / (_h * _w);
 		}
 
 	private:
@@ -38,7 +38,8 @@ namespace image_filter {
 	enum class PadType {
 		CONST,
 		REPLICATE,
-		SYMMETRIC
+		SYMMETRIC,
+		CIRCULAR,
 	};
 
 	using Shape = blaze::StaticVector<size_t, 2>;
@@ -46,13 +47,13 @@ namespace image_filter {
 	template<typename T>
 	class PadModel {
 	public:
-		PadModel(const Shape& shape, PadDirection padDirection, PadType padType, T initValue={})
-			: _shape(shape), _padDirection(padDirection), _padType(padType), _initValue(initValue) {};
+		PadModel(PadDirection padDirection, PadType padType, T initValue = {})
+				: _padDirection(padDirection), _padType(padType), _initValue(initValue) {};
 
-		blaze::DynamicMatrix<T> pad(const blaze::DynamicMatrix<T>& src) const {
+		blaze::DynamicMatrix<T> pad(const Shape &shape, const blaze::DynamicMatrix<T> &src) const {
 			using namespace blaze;
-			size_t padRow = _shape[0];
-			size_t padCol = _shape[1];
+			size_t padRow = shape[0];
+			size_t padCol = shape[1];
 
 			// Init padded matrix
 			DynamicMatrix<T> dist;
@@ -71,25 +72,57 @@ namespace image_filter {
 				padRow = 0;
 				padCol = 0;
 			}
-			//TODO: I don't like this traveling, we can use memcopy or something like this.
-			for (size_t i=0; i<src.rows(); ++i) {
-				for (size_t j=0; j<src.columns(); ++j) {
-					dist(i + padRow, j + padCol) = src(i, j);
+
+			for (size_t i = 0; i<dist.rows(); ++i) {
+				for (size_t j = 0; j < dist.columns(); ++j) {
+					int si = i - padRow;
+					int sj = j - padCol;
+
+					if (si >= 0 && si < src.rows()
+						&& sj >= 0 && sj < src.columns()) {
+						//TODO: I don't like this traveling, we can use memcopy or something like this.
+						dist(i, j) = src(si, sj);
+					} else {
+						if (_padType == PadType::REPLICATE) {
+							si = std::max<int>(0, si);
+							si = std::min<int>(src.rows() - 1, si);
+
+							sj = std::max<int>(0, sj);
+							sj = std::min<int>(src.columns() - 1, sj);
+							dist(i, j) = src(si, sj);
+						} else if (_padType == PadType::CIRCULAR) {
+							si = (i+padRow+1) % src.rows();
+							sj = (j+padCol+1) % src.columns();
+							dist(i, j) = src(si, sj);
+						} else if (_padType == PadType::SYMMETRIC) {
+							// TODO: Must be implemented!
+						}
+
+
+					}
 				}
 			}
 
 			return dist;
 		}
+
 	private:
-		Shape _shape;
 		PadDirection _padDirection;
 		PadType _padType;
 		T _initValue;
 	};
 
+	template<typename T>
+	blaze::DynamicMatrix<T> cov2(const blaze::DynamicMatrix<T>& input, blaze::DynamicMatrix<T>& func) {
 
-	template <typename Filter>
-	Image imfilter(const Image &img, const Filter &impl, const PadModel<RGB>& padmodel) {
 	}
+
+	template<typename Filter>
+	Image imfilter(const Image &img, const Filter &impl, const PadModel<RGB> &padmodel) {
+		auto filter = impl();
+		auto paddedImage = padmodel.pad(Shape{filter.rows()/2, filter.columns()/2}, img);
+
+	}
+
 }
 #endif //GAUSFILTER_IMAGEFILTER_H
