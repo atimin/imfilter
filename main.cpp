@@ -3,19 +3,7 @@
 
 using namespace image_filter;
 
-void pretty_print(const std::string name, const Image& img) {
-	std::cout << name << "[" << img.rows() << ", " << img.columns() << "]: \n";
-	for (size_t i = 0; i < img.rows(); ++i) {
-		for (size_t j = 0; j < img.columns(); ++j) {
-			const RGB &point = img(i, j);
-			std::cout << "(" << (int)point[0] << "," << (int)point[1] << "," << (int)point[2] << ")\t";
-		}
 
-		std::cout << "\n";
-	}
-
-	std::cout << std::endl;
-}
 
 int main() {
 
@@ -73,12 +61,26 @@ int main() {
 //	assert(bothCircular(6, 6) == img1(2, 2));
 //	assert(bothCircular(10, 10) == img1(0, 0));
 
-	AverageFilter averageFilter(2, 5);
+
+	AverageFilter averageFilter(2, 3);
 
 	auto filter = averageFilter();
-	assert(blaze::size(filter) == 10);
-	assert(filter(0, 0) == 0.1);
-	assert(filter(1, 4) == 0.1);
+	assert(blaze::size(filter) == 6);
+	assert(filter(0, 0) == 0.16666666666666666);
+	assert(filter(1, 2) == 0.16666666666666666);
+
+	Shape padShape{static_cast<size_t >(std::floor(filter.rows())),
+				   static_cast<size_t >(std::floor(filter.columns()))};
+	auto prepCov2 = PadModel<RGB>(PadDirection::BOTH, PadType::CONST).pad(padShape, img1);
+	pretty_print("PrepCov2", prepCov2);
+	auto cov2Mat = imgcov2(prepCov2, filter);
+	pretty_print("Cov2", cov2Mat);
+
+	assert(blaze::size(cov2Mat) == 42);
+	assert(cov2Mat(0, 0) == (RGB{0,0,0}));
+	assert(cov2Mat(2, 2) == (RGB{0,0,0}));
+	assert(cov2Mat(3, 3) == (RGB{4,4,4}));
+	assert(cov2Mat(4, 5) == (RGB{1,1,1}));
 
 //	imfilter(img1, averageFilter, bothZero);
 	return 0;
