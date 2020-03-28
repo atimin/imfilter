@@ -124,8 +124,25 @@ int main() {
 	MotionFilter motFilter(3, 30);
 	auto motKernel = motFilter();
 	krprint("motFilter", motKernel);
+	assert(blaze::size(motKernel) == 9);
 	assert(eq(motKernel(0,0), 0));
 	assert(eq(motKernel(1,1), 0.341361));
 	assert(eq(motKernel(1,2), 0.16466));
+
+	PrewittFilter prewittFilter;
+	auto prewKernel = prewittFilter();
+	krprint("prewKernel", prewKernel);
+	assert(blaze::size(prewKernel) == 9);
+	assert(eq(prewKernel(0,0), 1));
+	assert(eq(prewKernel(1,1), 0));
+	assert(eq(prewKernel(2,1), -1));
+
+	SobelFilter sobelFilter;
+	auto sobelKernel = sobelFilter();
+	krprint("sobelKernel", sobelKernel);
+	assert(blaze::size(sobelKernel) == 9);
+	assert(eq(sobelKernel(0,0), 1));
+	assert(eq(sobelKernel(1,1), 0));
+	assert(eq(sobelKernel(2,1), -2));
 	return 0;
 }

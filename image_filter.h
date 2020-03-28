@@ -316,9 +316,9 @@ namespace image_filter {
 			_kernel = FilterKernel(h.rows() * 2 - 1, h.columns() * 2 - 1);
 			blaze::submatrix(_kernel, 0, 0, h.rows(), h.columns()) = h;
 			blaze::submatrix(_kernel,
-					h.rows() - 1, h.columns() - 1, dist2line.rows(), dist2line.columns()) = dist2line;
+							 h.rows() - 1, h.columns() - 1, dist2line.rows(), dist2line.columns()) = dist2line;
 
-			_kernel /= blaze::sum(_kernel)  + eps*len*len;
+			_kernel /= blaze::sum(_kernel) + eps * len * len;
 			if (cosphi > 0) {
 				_kernel = flipud(_kernel);
 			}
@@ -332,6 +332,47 @@ namespace image_filter {
 	private:
 		FilterKernel _kernel;
 	};
+
+	/**
+	 * Prewitt filter
+	 */
+	class PrewittFilter {
+	public:
+		PrewittFilter() :
+				_kernel{
+						{1,  1,  1},
+						{0,  0,  0},
+						{-1, -1, -1}
+				} {}
+
+		FilterKernel operator()() const {
+			return _kernel;
+		}
+
+	private:
+		FilterKernel _kernel;
+	};
+
+	/**
+ 	* Sobel filter
+ 	*/
+	class SobelFilter {
+	public:
+		SobelFilter() :
+				_kernel{
+						{1,  2,  1},
+						{0,  0,  0},
+						{-1, -2, -1}
+				} {}
+
+		FilterKernel operator()() const {
+			return _kernel;
+		}
+
+	private:
+		FilterKernel _kernel;
+	};
+
 
 	enum class PadDirection {
 		POST,
