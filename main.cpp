@@ -83,10 +83,10 @@ int main() {
 	imgprint("Cov2", cov2Mat);
 
 	assert(blaze::size(cov2Mat) == 42);
-	assert(cov2Mat(0, 0) == (RGB{0,0,0}));
-	assert(cov2Mat(2, 2) == (RGB{0,0,0}));
-	assert(cov2Mat(3, 3) == (RGB{4,4,4}));
-	assert(cov2Mat(4, 5) == (RGB{1,1,1}));
+	assert(cov2Mat(0, 0) == (RGB{0, 0, 0}));
+	assert(cov2Mat(2, 2) == (RGB{0, 0, 0}));
+	assert(cov2Mat(3, 3) == (RGB{4, 4, 4}));
+	assert(cov2Mat(4, 5) == (RGB{1, 1, 1}));
 
 	auto averageFilterResult = imfilter(img1, averageFilter, bothConstModel);
 	imgprint("averageFilterResult", averageFilterResult);
@@ -100,49 +100,58 @@ int main() {
 	auto gaussianKernel = gaussianFilter();
 	krprint("gaussianKernel", gaussianKernel);
 	assert(blaze::size(gaussianKernel) == 6);
-	assert(eq(gaussianKernel(0,0), 1.86331e-06));
-	assert(eq(gaussianKernel(1,1), 0.499996));
-	assert(eq(gaussianKernel(1,2), 1.86331e-06));
+	assert(eq(gaussianKernel(0, 0), 1.86331e-06));
+	assert(eq(gaussianKernel(1, 1), 0.499996));
+	assert(eq(gaussianKernel(1, 2), 1.86331e-06));
 
 
 	LaplacianFilter laplacianFilter(0.2);
 	auto laplacianKernel = laplacianFilter();
 	krprint("laplacianKernel", laplacianKernel);
 	assert(blaze::size(laplacianKernel) == 9);
-	assert(eq(laplacianKernel(0,0), 0.16667));
-	assert(eq(laplacianKernel(1,1), -3.3333));
-	assert(eq(laplacianKernel(2,2), 0.16667));
+	assert(eq(laplacianKernel(0, 0), 0.16667));
+	assert(eq(laplacianKernel(1, 1), -3.3333));
+	assert(eq(laplacianKernel(2, 2), 0.16667));
 
 	LogFilter logFilter(padShape, 0.2);
 	auto logKernel = logFilter();
 	krprint("logFilter", logKernel);
 	assert(blaze::size(logKernel) == 6);
-	assert(eq(logKernel(0,0), -17.7077));
-	assert(eq(logKernel(1,1), 35.4155));
-	assert(eq(logKernel(1,2), -17.7077));
+	assert(eq(logKernel(0, 0), -17.7077));
+	assert(eq(logKernel(1, 1), 35.4155));
+	assert(eq(logKernel(1, 2), -17.7077));
 
 	MotionFilter motFilter(3, 30);
 	auto motKernel = motFilter();
 	krprint("motFilter", motKernel);
 	assert(blaze::size(motKernel) == 9);
-	assert(eq(motKernel(0,0), 0));
-	assert(eq(motKernel(1,1), 0.341361));
-	assert(eq(motKernel(1,2), 0.16466));
+	assert(eq(motKernel(0, 0), 0));
+	assert(eq(motKernel(1, 1), 0.341361));
+	assert(eq(motKernel(1, 2), 0.16466));
 
 	PrewittFilter prewittFilter;
 	auto prewKernel = prewittFilter();
 	krprint("prewKernel", prewKernel);
 	assert(blaze::size(prewKernel) == 9);
-	assert(eq(prewKernel(0,0), 1));
-	assert(eq(prewKernel(1,1), 0));
-	assert(eq(prewKernel(2,1), -1));
+	assert(eq(prewKernel(0, 0), 1));
+	assert(eq(prewKernel(1, 1), 0));
+	assert(eq(prewKernel(2, 1), -1));
 
 	SobelFilter sobelFilter;
 	auto sobelKernel = sobelFilter();
 	krprint("sobelKernel", sobelKernel);
 	assert(blaze::size(sobelKernel) == 9);
-	assert(eq(sobelKernel(0,0), 1));
-	assert(eq(sobelKernel(1,1), 0));
-	assert(eq(sobelKernel(2,1), -2));
+	assert(eq(sobelKernel(0, 0), 1));
+	assert(eq(sobelKernel(1, 1), 0));
+	assert(eq(sobelKernel(2, 1), -2));
+
+	UnsharpFilter unsharpFilter(0.7);
+	auto unsharpKernel = unsharpFilter();
+	krprint("unsharpKernel", unsharpKernel);
+	assert(blaze::size(unsharpKernel) == 9);
+	assert(eq(unsharpKernel(0, 0), -0.411765));
+	assert(eq(unsharpKernel(1, 1), 3.35294));
+	assert(eq(unsharpKernel(2, 1), -0.176471));
+
 	return 0;
 }

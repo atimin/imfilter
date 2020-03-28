@@ -1,5 +1,5 @@
 A = [1 2 3; 4 5 6; 7 8 9];
-H = fspecial('motion',  3, 30);
+H = fspecial('unsharp', 0.7);
 [frows, fcols, tmp] = size(H);
 
 B = padarray (A, floor([frows/2, fcols/2]), "both", 0)

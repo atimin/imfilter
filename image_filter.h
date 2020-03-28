@@ -354,6 +354,27 @@ namespace image_filter {
 	};
 
 	/**
+	 * Unsharp filter
+	 */
+	class UnsharpFilter {
+	public:
+		UnsharpFilter(double alpha) {
+			_kernel = FilterKernel{
+					{0, 0, 0},
+					{0, 1, 0},
+					{0, 0, 0}
+			} - LaplacianFilter(alpha)();
+		}
+
+		FilterKernel operator()() const {
+			return _kernel;
+		}
+
+	private:
+		FilterKernel _kernel;
+	};
+
+	/**
  	* Sobel filter
  	*/
 	class SobelFilter {
