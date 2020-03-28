@@ -3,7 +3,9 @@
 
 using namespace image_filter;
 
-
+bool eq(double a, double b) {
+	return fabs(a - b) < 0.001;
+}
 
 int main() {
 
@@ -16,7 +18,7 @@ int main() {
 	};
 
 	auto bothWithZero = PadModel<RGB>(PadDirection::BOTH, PadType::CONST).pad(Shape{1, 2}, img1);
-	pretty_print("bothWithZero", bothWithZero);
+	imgprint("bothWithZero", bothWithZero);
 
 	assert(blaze::size(bothWithZero) == 35);
 	const RGB ZERO{0, 0, 0};
@@ -25,7 +27,7 @@ int main() {
 	assert(bothWithZero(1, 2) == img1(0, 0));
 
 	auto preWithOnes = PadModel<RGB>(PadDirection::PRE, PadType::CONST, RGB{1, 1, 1}).pad(Shape{2, 1}, img1);
-	pretty_print("preWithOnes", preWithOnes);
+	imgprint("preWithOnes", preWithOnes);
 
 	assert(blaze::size(preWithOnes) == 20);
 	const RGB ONES{1, 1, 1};
@@ -34,7 +36,7 @@ int main() {
 	assert(preWithOnes(2, 1) == img1(0, 0));
 
 	auto postWithOnes = PadModel<RGB>(PadDirection::POST, PadType::CONST, RGB{1, 1, 1}).pad(Shape{2, 1}, img1);
-	pretty_print("postWithOnes", postWithOnes);
+	imgprint("postWithOnes", postWithOnes);
 
 	assert(blaze::size(preWithOnes) == 20);
 	assert(postWithOnes(4, 3) == ONES);
@@ -42,7 +44,7 @@ int main() {
 	assert(postWithOnes(0, 0) == img1(0, 0));
 
 	auto bothReplicate = PadModel<RGB>(PadDirection::BOTH, PadType::REPLICATE).pad(Shape{1, 2}, img1);
-	pretty_print("bothReplicate", bothReplicate);
+	imgprint("bothReplicate", bothReplicate);
 
 	assert(blaze::size(bothReplicate) == 35);
 	assert(bothReplicate(0, 0) == img1(0, 0));
@@ -65,20 +67,20 @@ int main() {
 	Shape padShape{2, 3};
 	AverageFilter averageFilter(padShape);
 
-	auto filter = averageFilter();
-	pretty_print("filter", filter);
+	auto avgKernel = averageFilter();
+	krprint("filter", avgKernel);
 
-	assert(blaze::size(filter) == 6);
-	assert(filter(0, 0) == 0.16666666666666666);
-	assert(filter(1, 2) == 0.16666666666666666);
+	assert(blaze::size(avgKernel) == 6);
+	assert(avgKernel(0, 0) == 0.16666666666666666);
+	assert(avgKernel(1, 2) == 0.16666666666666666);
 
 
 	PadModel<RGB> bothConstModel(PadDirection::BOTH, PadType::CONST);
 
 	auto prepCov2 = bothConstModel.pad(padShape, img1);
-	pretty_print("PrepCov2", prepCov2);
-	auto cov2Mat = imgcov2(prepCov2, filter);
-	pretty_print("Cov2", cov2Mat);
+	imgprint("PrepCov2", prepCov2);
+	auto cov2Mat = imgcov2(prepCov2, avgKernel);
+	imgprint("Cov2", cov2Mat);
 
 	assert(blaze::size(cov2Mat) == 42);
 	assert(cov2Mat(0, 0) == (RGB{0,0,0}));
@@ -87,7 +89,20 @@ int main() {
 	assert(cov2Mat(4, 5) == (RGB{1,1,1}));
 
 	auto averageFilterResult = imfilter(img1, averageFilter, bothConstModel);
-	pretty_print("averageFilterResult", averageFilterResult);
+	imgprint("averageFilterResult", averageFilterResult);
 	assert(averageFilterResult == cov2Mat);
+
+//	DiskFilter diskFilter(3.2);
+//	auto diskKernel = diskFilter();
+
+
+	GaussianFilter gaussianFilter(padShape, 0.2);
+	auto gaussianKernel = gaussianFilter();
+	krprint("gaussianKernel", gaussianKernel);
+	assert(blaze::size(gaussianKernel) == 6);
+	assert(eq(gaussianKernel(0,0), 1.86331e-06));
+	assert(eq(gaussianKernel(1,1), 0.499996));
+	assert(eq(gaussianKernel(1,2), 1.86331e-06));
+
 	return 0;
 }

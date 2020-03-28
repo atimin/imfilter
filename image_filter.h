@@ -5,6 +5,7 @@
 #ifndef IMAGEFILTER_H
 #define IMAGEFILTER_H
 
+#include <algorithm>
 #include <blaze/Math.h>
 
 namespace image_filter {
@@ -13,7 +14,7 @@ namespace image_filter {
 	using Image = blaze::DynamicMatrix<RGB>;
 	using FilterKernel = blaze::DynamicMatrix<double>;
 
-	void pretty_print(const std::string &name, const Image &img) {
+	void imgprint(const std::string &name, const Image &img) {
 		std::cout << name << "[" << img.rows() << ", " << img.columns() << "]: \n";
 		for (size_t i = 0; i < img.rows(); ++i) {
 			for (size_t j = 0; j < img.columns(); ++j) {
@@ -27,7 +28,7 @@ namespace image_filter {
 		std::cout << std::endl;
 	}
 
-	void pretty_print(const std::string &name, const FilterKernel &img) {
+	void krprint(const std::string &name, const FilterKernel &img) {
 		std::cout << name << "[" << img.rows() << ", " << img.columns() << "]: \n";
 		for (size_t i = 0; i < img.rows(); ++i) {
 			for (size_t j = 0; j < img.columns(); ++j) {
@@ -42,12 +43,39 @@ namespace image_filter {
 
 	using Shape = blaze::StaticVector<size_t, 2>;
 
+	template<typename T>
+	std::pair<blaze::DynamicMatrix<T>, blaze::DynamicMatrix<T>>
+	meshgrid(const blaze::DynamicVector<T, blaze::rowVector> &x,
+			 const blaze::DynamicVector<T, blaze::columnVector> &y) {
+		blaze::DynamicMatrix<T, blaze::rowMajor> xMat(blaze::size(y), blaze::size(x));
+		blaze::DynamicMatrix<T, blaze::columnMajor> yMat(blaze::size(y), blaze::size(x));
+
+		for (int i = 0; i < xMat.rows(); ++i) {
+			blaze::row(xMat, i) = x;
+		}
+
+		for (int i = 0; i < yMat.columns(); ++i) {
+			blaze::column(yMat, i) = y;
+		}
+
+		return std::make_pair(xMat, yMat);
+	}
+
+	template<typename T, bool P>
+	blaze::DynamicVector<T, P> range(T min, T max) {
+		blaze::DynamicVector<T, P> vec(max - min + 1);
+		std::iota(vec.begin(), vec.end(), min);
+
+		return vec;
+	}
+
+
 	/**
 	 * 	Average filter
 	 */
 	class AverageFilter {
 	public:
-		AverageFilter(const Shape& shape) : _shape(shape){}
+		AverageFilter(const Shape &shape) : _shape(shape) {}
 
 		FilterKernel operator()() const {
 			FilterKernel f(_shape[0], _shape[1], 1.0);
@@ -56,6 +84,73 @@ namespace image_filter {
 
 	private:
 		Shape _shape;
+	};
+
+	/**
+	 * Disk average filer
+	 */
+	class DiskFilter {
+	public:
+		explicit DiskFilter(double rad) : _rad(rad) {};
+
+		FilterKernel operator()() const {
+
+
+			auto crad = std::ceil(_rad - 0.5);
+			size_t matSize = crad * 2 + 1;
+
+			auto xrange = range<FilterKernel::ElementType, blaze::rowVector>(-crad, crad);
+			auto yrange = range<FilterKernel::ElementType, blaze::columnVector>(-crad, crad);
+			auto[xMat, yMat] = meshgrid(xrange, yrange);
+
+			krprint("xMat", xMat);
+			krprint("yMat", yMat);
+
+			FilterKernel xymaxMat = blaze::max(blaze::abs(xMat), blaze::abs(yMat));
+			FilterKernel xyminMat = blaze::min(blaze::abs(xMat), blaze::abs(yMat));
+
+			krprint("xMat", xymaxMat);
+			krprint("yMat", xyminMat);
+
+			// TODO: Next steps are not clear. Implement!!!
+			return FilterKernel();
+		}
+
+
+	private:
+		FilterKernel::ElementType _rad;
+	};
+
+	/**
+	 * Gaussian lowpass filter
+	 */
+
+	class GaussianFilter {
+	public:
+		GaussianFilter(const Shape &shape, double sigma) : _shape(shape), _sigma(sigma) {}
+
+		FilterKernel operator()() const {
+			auto halfShape =
+					(static_cast<blaze::StaticVector<FilterKernel::ElementType, 2>>(_shape) - 1) / 2;
+
+			auto xrange = range<FilterKernel::ElementType, blaze::rowVector>(-halfShape[1], halfShape[1]);
+			auto yrange = range<FilterKernel::ElementType, blaze::columnVector>(-halfShape[0], halfShape[0]);
+			auto[xMat, yMat] = meshgrid(xrange, yrange);
+
+			auto arg = -(xMat%xMat + yMat%yMat)/(2*_sigma*_sigma);
+			FilterKernel h = blaze::exp(arg);
+
+			auto sumh = blaze::sum(h);
+			if (sumh != 0) {
+				h = h/sumh;
+			}
+
+			return h;
+		}
+
+	private:
+		Shape _shape;
+		double _sigma;
 	};
 
 	enum class PadDirection {
@@ -161,7 +256,7 @@ namespace image_filter {
 	blaze::DynamicMatrix<ChannelType>
 	imfilter(const blaze::DynamicMatrix<ChannelType> &img, const Filter &impl, const PadModel<ChannelType> &padmodel) {
 		auto kernel = impl();
-		Shape padShape{kernel.rows(),kernel.columns()};
+		Shape padShape{kernel.rows(), kernel.columns()};
 		auto paddedImage = padmodel.pad(padShape, img);
 		return imgcov2(paddedImage, kernel);
 	}
