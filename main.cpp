@@ -104,5 +104,13 @@ int main() {
 	assert(eq(gaussianKernel(1,1), 0.499996));
 	assert(eq(gaussianKernel(1,2), 1.86331e-06));
 
+
+	LaplacianFilter laplacianFilter(0.2);
+	auto laplacianKernel = laplacianFilter();
+	krprint("laplacianKernel", laplacianKernel);
+	assert(blaze::size(laplacianKernel) == 9);
+	assert(eq(laplacianKernel(0,0), 0.16667));
+	assert(eq(laplacianKernel(1,1), -3.3333));
+	assert(eq(laplacianKernel(2,2), 0.16667));
 	return 0;
 }

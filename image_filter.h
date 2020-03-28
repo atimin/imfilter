@@ -137,12 +137,12 @@ namespace image_filter {
 			auto yrange = range<FilterKernel::ElementType, blaze::columnVector>(-halfShape[0], halfShape[0]);
 			auto[xMat, yMat] = meshgrid(xrange, yrange);
 
-			auto arg = -(xMat%xMat + yMat%yMat)/(2*_sigma*_sigma);
+			auto arg = -(xMat % xMat + yMat % yMat) / (2 * _sigma * _sigma);
 			FilterKernel h = blaze::exp(arg);
 
 			auto sumh = blaze::sum(h);
 			if (sumh != 0) {
-				h = h/sumh;
+				h = h / sumh;
 			}
 
 			return h;
@@ -151,6 +151,27 @@ namespace image_filter {
 	private:
 		Shape _shape;
 		double _sigma;
+	};
+
+	/**
+	 * Laplacian filter
+	 */
+	class LaplacianFilter {
+	public:
+		explicit LaplacianFilter(double alpha) : _alpha(std::max<double>(0, std::min<double>(alpha, 1))) {}
+
+		FilterKernel operator()() const {
+			auto h1 = _alpha / (_alpha + 1);
+			auto h2 = (1 - _alpha) / (_alpha + 1);
+
+			return FilterKernel{
+					{h1, h2, h1},
+					{h2, -4 / (_alpha + 1), h2},
+					{h1, h2, h1}};
+		}
+
+	private:
+		double _alpha;
 	};
 
 	enum class PadDirection {

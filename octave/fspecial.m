@@ -153,7 +153,7 @@ function h = fspecial(varargin)
            h  = h/sumh;
          end;
          
-      case 'laplacian' % Laplacian filter
+      case 'laplacian' % 
          alpha = p2;
          alpha = max(0,min(alpha,1));
          h1    = alpha/(alpha+1); h2 = (1-alpha)/(alpha+1);
