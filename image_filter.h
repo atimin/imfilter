@@ -420,14 +420,14 @@ namespace image_filter {
 			size_t padCol = shape[1];
 
 			// Init padded matrix
-			DynamicMatrix<T> dist;
+			DynamicMatrix<T> dst;
 			switch (_padDirection) {
 				case PadDirection::PRE:
 				case PadDirection::POST:
-					dist = blaze::DynamicMatrix<T>(src.rows() + padRow, src.columns() + padCol, _initValue);
+					dst = blaze::DynamicMatrix<T>(src.rows() + padRow, src.columns() + padCol, _initValue);
 					break;
 				case PadDirection::BOTH:
-					dist = blaze::DynamicMatrix<T>(src.rows() + padRow * 2, src.columns() + padCol * 2, _initValue);
+					dst = blaze::DynamicMatrix<T>(src.rows() + padRow * 2, src.columns() + padCol * 2, _initValue);
 					break;
 			}
 
@@ -437,27 +437,26 @@ namespace image_filter {
 				padCol = 0;
 			}
 
-			for (size_t i = 0; i<dist.rows(); ++i) {
-				for (size_t j = 0; j < dist.columns(); ++j) {
+			blaze::submatrix(dst, padRow, padCol, src.rows(), src.columns()) = src;
+			for (size_t i = 0; i<dst.rows(); ++i) {
+				for (size_t j = 0; j < dst.columns(); ++j) {
 					int si = i - padRow;
 					int sj = j - padCol;
 
-					if (si >= 0 && si < src.rows()
-						&& sj >= 0 && sj < src.columns()) {
-						//TODO: I don't like this traveling, we can use memcopy or something like this.
-						dist(i, j) = src(si, sj);
-					} else {
+					bool inside = si >= 0 && si < src.rows()
+								  && sj >= 0 && sj < src.columns();
+					if (!inside) {
 						if (_padType == PadType::REPLICATE) {
 							si = std::max<int>(0, si);
 							si = std::min<int>(src.rows() - 1, si);
 
 							sj = std::max<int>(0, sj);
 							sj = std::min<int>(src.columns() - 1, sj);
-							dist(i, j) = src(si, sj);
+							dst(i, j) = src(si, sj);
 						} else if (_padType == PadType::CIRCULAR) {
 							si = (i + padRow + 1) % src.rows();
 							sj = (j + padCol + 1) % src.columns();
-							dist(i, j) = src(si, sj);
+							dst(i, j) = src(si, sj);
 						} else if (_padType == PadType::SYMMETRIC) {
 							// TODO: Must be implemented!
 						}
@@ -465,7 +464,7 @@ namespace image_filter {
 				}
 			}
 
-			return dist;
+			return dst;
 		}
 
 	private:
