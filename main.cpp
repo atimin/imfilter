@@ -120,5 +120,12 @@ int main() {
 	assert(eq(logKernel(0,0), -17.7077));
 	assert(eq(logKernel(1,1), 35.4155));
 	assert(eq(logKernel(1,2), -17.7077));
+
+	MotionFilter motFilter(3, 30);
+	auto motKernel = motFilter();
+	krprint("motFilter", motKernel);
+	assert(eq(motKernel(0,0), 0));
+	assert(eq(motKernel(1,1), 0.341361));
+	assert(eq(motKernel(1,2), 0.16466));
 	return 0;
 }

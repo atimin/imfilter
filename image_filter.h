@@ -6,7 +6,9 @@
 #define IMAGEFILTER_H
 
 #include <algorithm>
+#include <cmath>
 #include <blaze/Math.h>
+#include <blaze/Blaze.h>
 
 namespace image_filter {
 
@@ -41,6 +43,17 @@ namespace image_filter {
 		std::cout << std::endl;
 	}
 
+	template<typename T, bool P>
+	void vecprint(const std::string &name, const blaze::DynamicVector<T, P> &vec) {
+		std::cout << name << "[" << vec.size() << "]: \n";
+		for (auto &val : vec) {
+			std::cout << "[" << val << "]\t";
+		}
+
+
+		std::cout << std::endl;
+	}
+
 	using Shape = blaze::StaticVector<size_t, 2>;
 
 	template<typename T>
@@ -62,13 +75,53 @@ namespace image_filter {
 	}
 
 	template<typename T, bool P>
-	blaze::DynamicVector<T, P> range(T min, T max) {
-		blaze::DynamicVector<T, P> vec(max - min + 1);
-		std::iota(vec.begin(), vec.end(), min);
+	blaze::DynamicVector<T, P> range(T start, T stop, T step = 1) {
+		blaze::DynamicVector<T, P> vec(std::abs((stop - start) / step) + 1);
+		for (auto &val : vec) {
+			val = start;
+			start += step;
+		}
 
 		return vec;
 	}
 
+	template<typename T>
+	blaze::DynamicVector<std::pair<size_t, size_t>, blaze::columnVector>
+	mfind(const blaze::DynamicMatrix<T> &input, const blaze::DynamicMatrix<bool> &cond) {
+		std::vector<std::pair<size_t, size_t>> indecies;
+
+		for (auto i = 0; i < input.rows(); ++i) {
+			for (auto j = 0; j < input.columns(); ++j) {
+				if (cond(i, j)) {
+					indecies.push_back(std::make_pair(i, j));
+				}
+			}
+		}
+
+		return blaze::DynamicVector<std::pair<size_t, size_t>, blaze::columnVector>(indecies.size(), indecies.data());
+	}
+
+
+	template<typename T>
+	blaze::DynamicMatrix<T> rot90(const blaze::DynamicMatrix<T> &input) {
+		blaze::DynamicMatrix<T> out(input.columns(), input.rows());
+		for (int i = 0; i < input.rows(); ++i) {
+			auto r = blaze::trans(blaze::row(input, i));
+			blaze::column(out, input.rows() - i - 1) = r;
+		}
+
+		return out;
+	}
+
+	template<typename T>
+	blaze::DynamicMatrix<T> flipud(const blaze::DynamicMatrix<T> &input) {
+		blaze::DynamicMatrix<T> out(input.rows(), input.columns());
+		for (int i = 0; i < input.rows(); ++i) {
+			blaze::row(out, input.rows() - i - 1) = blaze::row(input, i);
+		}
+
+		return out;
+	}
 
 	/**
 	 * 	Average filter
@@ -189,18 +242,87 @@ namespace image_filter {
 
 
 	/**
- * Laplacian filter
- */
+	 * Laplacian filter
+	 */
 	class LogFilter {
 	public:
 		explicit LogFilter(const Shape &shape, double sigma) {
-			auto std2 = sigma*sigma;
+			auto std2 = sigma * sigma;
 			GaussianFilter gausFilter(shape, sigma);
 
 			auto h = gausFilter();
 			_kernel = h % (gausFilter._xMat % gausFilter._xMat + gausFilter._yMat % gausFilter._yMat - 2 * std2)
-					  / (std2*std2);
-			_kernel -= blaze::sum(_kernel)/blaze::prod(shape);
+					  / (std2 * std2);
+			_kernel -= blaze::sum(_kernel) / blaze::prod(shape);
+		}
+
+		FilterKernel operator()() const {
+			return _kernel;
+		}
+
+	private:
+		FilterKernel _kernel;
+	};
+
+	/**
+	 * Motion filter
+	 */
+	class MotionFilter {
+	public:
+		explicit MotionFilter(double len, int theta) {
+			len = std::max<double>(1, len);
+			auto half = (len - 1) / 2;
+			auto phi = static_cast<double>(theta % 180) / 180 * M_PI;
+
+
+			double cosphi = std::cos(phi);
+			double sinphi = std::sin(phi);
+			int xsign = cosphi > 0 ? 1 : -1;
+			double linewdt = 1;
+
+			auto eps = std::numeric_limits<double>::epsilon();
+			auto sx = std::trunc(half * cosphi + linewdt * xsign - len * eps);
+			auto sy = std::trunc(half * sinphi + linewdt - len * eps);
+
+			auto xrange =
+					range<FilterKernel::ElementType, blaze::rowVector>(0, sx, xsign);
+			auto yrange = range<FilterKernel::ElementType, blaze::columnVector>(0, sy);
+			auto[xMat, yMat] = meshgrid(xrange, yrange);
+
+			FilterKernel dist2line = (yMat * cosphi - xMat * sinphi);
+			auto rad = blaze::sqrt(xMat % xMat + yMat % yMat);
+
+			// find points beyond the line's end-point but within the line width
+			blaze::DynamicMatrix<bool> cond = blaze::map(rad, [half](const auto &x) { return x >= half; })
+											  && blaze::map(abs(dist2line),
+															[linewdt](const auto &x) { return x <= linewdt; });
+
+			auto lastpix = mfind(static_cast<FilterKernel>(dist2line), cond);
+
+			for (auto[i, j] : lastpix) {
+				auto v = dist2line(i, j);
+				auto pix = half - abs((xMat(i, j) + v * sinphi) / cosphi);
+				dist2line(i, j) = std::sqrt(v * v + pix * pix);
+			}
+
+			dist2line = linewdt + eps - abs(dist2line);
+			// zero out anything beyond line width
+			dist2line = blaze::map(dist2line, [](const FilterKernel::ElementType &v) {
+				return v < 0 ? 0 : v;
+			});
+
+			auto h = rot90(rot90<FilterKernel::ElementType>(dist2line));
+
+			_kernel = FilterKernel(h.rows() * 2 - 1, h.columns() * 2 - 1);
+			blaze::submatrix(_kernel, 0, 0, h.rows(), h.columns()) = h;
+			blaze::submatrix(_kernel,
+					h.rows() - 1, h.columns() - 1, dist2line.rows(), dist2line.columns()) = dist2line;
+
+			_kernel /= blaze::sum(_kernel)  + eps*len*len;
+			if (cosphi > 0) {
+				_kernel = flipud(_kernel);
+			}
+
 		}
 
 		FilterKernel operator()() const {

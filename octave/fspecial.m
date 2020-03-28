@@ -191,7 +191,7 @@ function h = fspecial(varargin)
          % define mesh for the half matrix, eps takes care of the right size
          % for 0 & 90 rotation
          sx = fix(half*cosphi + linewdt*xsign - len*eps);
-         sy = fix(half*sinphi + linewdt - len*eps);
+         sy = (half*sinphi + linewdt - len*eps);
          [x y] = meshgrid(0:xsign:sx, 0:sy);
     
          % define shortest distance from a pixel to the rotated line 
@@ -201,6 +201,7 @@ function h = fspecial(varargin)
          % find points beyond the line's end-point but within the line width
          lastpix = find((rad >= half)&(abs(dist2line)<=linewdt));
          %distance to the line's end-point parallel to the line 
+         X = (rad >= half)&(abs(dist2line)<=linewdt)
          x2lastpix = half - abs((x(lastpix) + dist2line(lastpix)*sinphi)/cosphi);
     
          dist2line(lastpix) = sqrt(dist2line(lastpix).^2 + x2lastpix.^2);
