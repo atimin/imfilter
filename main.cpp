@@ -112,5 +112,13 @@ int main() {
 	assert(eq(laplacianKernel(0,0), 0.16667));
 	assert(eq(laplacianKernel(1,1), -3.3333));
 	assert(eq(laplacianKernel(2,2), 0.16667));
+
+	LogFilter logFilter(padShape, 0.2);
+	auto logKernel = logFilter();
+	krprint("logFilter", logKernel);
+	assert(blaze::size(logKernel) == 6);
+	assert(eq(logKernel(0,0), -17.7077));
+	assert(eq(logKernel(1,1), 35.4155));
+	assert(eq(logKernel(1,2), -17.7077));
 	return 0;
 }

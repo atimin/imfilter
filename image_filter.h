@@ -75,15 +75,17 @@ namespace image_filter {
 	 */
 	class AverageFilter {
 	public:
-		AverageFilter(const Shape &shape) : _shape(shape) {}
+		AverageFilter(const Shape &shape) {
+			FilterKernel f(shape[0], shape[1], 1.0);
+			_kernel = f / blaze::prod(shape);
+		}
 
 		FilterKernel operator()() const {
-			FilterKernel f(_shape[0], _shape[1], 1.0);
-			return f / blaze::prod(_shape);
+			return _kernel;
 		}
 
 	private:
-		Shape _shape;
+		FilterKernel _kernel;
 	};
 
 	/**
@@ -126,31 +128,38 @@ namespace image_filter {
 	 */
 
 	class GaussianFilter {
-	public:
-		GaussianFilter(const Shape &shape, double sigma) : _shape(shape), _sigma(sigma) {}
+		friend class LogFilter;
 
-		FilterKernel operator()() const {
+	public:
+		GaussianFilter(const Shape &shape, double sigma) {
 			auto halfShape =
-					(static_cast<blaze::StaticVector<FilterKernel::ElementType, 2>>(_shape) - 1) / 2;
+					(static_cast<blaze::StaticVector<FilterKernel::ElementType, 2>>(shape) - 1) / 2;
 
 			auto xrange = range<FilterKernel::ElementType, blaze::rowVector>(-halfShape[1], halfShape[1]);
 			auto yrange = range<FilterKernel::ElementType, blaze::columnVector>(-halfShape[0], halfShape[0]);
 			auto[xMat, yMat] = meshgrid(xrange, yrange);
 
-			auto arg = -(xMat % xMat + yMat % yMat) / (2 * _sigma * _sigma);
-			FilterKernel h = blaze::exp(arg);
+			auto arg = -(xMat % xMat + yMat % yMat) / (2 * sigma * sigma);
+			_kernel = blaze::exp(arg);
 
-			auto sumh = blaze::sum(h);
+			auto sumh = blaze::sum(_kernel);
 			if (sumh != 0) {
-				h = h / sumh;
+				_kernel = _kernel / sumh;
+
 			}
 
-			return h;
+			_xMat = xMat;
+			_yMat = yMat;
+		}
+
+		FilterKernel operator()() const {
+			return _kernel;
 		}
 
 	private:
-		Shape _shape;
-		double _sigma;
+		FilterKernel _kernel;
+		FilterKernel _xMat;
+		FilterKernel _yMat;
 	};
 
 	/**
@@ -158,20 +167,48 @@ namespace image_filter {
 	 */
 	class LaplacianFilter {
 	public:
-		explicit LaplacianFilter(double alpha) : _alpha(std::max<double>(0, std::min<double>(alpha, 1))) {}
+		explicit LaplacianFilter(double alpha) {
+			alpha = std::max<double>(0, std::min<double>(alpha, 1));
+			auto h1 = alpha / (alpha + 1);
+			auto h2 = (1 - alpha) / (alpha + 1);
+
+			_kernel = FilterKernel{
+					{h1, h2,               h1},
+					{h2, -4 / (alpha + 1), h2},
+					{h1, h2,               h1}};
+		}
 
 		FilterKernel operator()() const {
-			auto h1 = _alpha / (_alpha + 1);
-			auto h2 = (1 - _alpha) / (_alpha + 1);
-
-			return FilterKernel{
-					{h1, h2, h1},
-					{h2, -4 / (_alpha + 1), h2},
-					{h1, h2, h1}};
+			return _kernel;
 		}
 
 	private:
-		double _alpha;
+		FilterKernel _kernel;
+
+	};
+
+
+	/**
+ * Laplacian filter
+ */
+	class LogFilter {
+	public:
+		explicit LogFilter(const Shape &shape, double sigma) {
+			auto std2 = sigma*sigma;
+			GaussianFilter gausFilter(shape, sigma);
+
+			auto h = gausFilter();
+			_kernel = h % (gausFilter._xMat % gausFilter._xMat + gausFilter._yMat % gausFilter._yMat - 2 * std2)
+					  / (std2*std2);
+			_kernel -= blaze::sum(_kernel)/blaze::prod(shape);
+		}
+
+		FilterKernel operator()() const {
+			return _kernel;
+		}
+
+	private:
+		FilterKernel _kernel;
 	};
 
 	enum class PadDirection {
