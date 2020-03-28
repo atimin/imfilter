@@ -414,7 +414,7 @@ namespace image_filter {
 		PadModel(PadDirection padDirection, PadType padType, T initValue = {})
 				: _padDirection(padDirection), _padType(padType), _initValue(initValue) {};
 
-		blaze::DynamicMatrix<T> pad(const Shape &shape, const blaze::DynamicMatrix<T> &src) const {
+		std::pair<blaze::DynamicMatrix<T>, Shape> pad(const Shape &shape, const blaze::DynamicMatrix<T> &src) const {
 			using namespace blaze;
 			size_t padRow = shape[0];
 			size_t padCol = shape[1];
@@ -464,7 +464,7 @@ namespace image_filter {
 				}
 			}
 
-			return dst;
+			return std::make_pair(dst, Shape{padRow, padCol});
 		}
 
 	private:
@@ -473,20 +473,26 @@ namespace image_filter {
 		T _initValue;
 	};
 
-	template<typename ChannelType>
-	blaze::DynamicMatrix<ChannelType> imgcov2(const blaze::DynamicMatrix<ChannelType> &input, FilterKernel &kernel) {
+	Image imgcov2(const Image &input, const FilterKernel &kernel) {
 		size_t funcRows = kernel.rows();
 		size_t funcCols = kernel.columns();
+		using DoubleImage = blaze::DynamicMatrix<blaze::StaticVector<double, 3>>;
 
 		//TODO: must have full or same flags
 		Image resultMat(input.rows() - std::ceil((double) funcRows / 2),
 						input.columns() - std::ceil((double) funcCols / 2));
 		for (auto i = 0; i < input.rows() - funcRows; ++i) {
 			for (auto j = 0; j < input.columns() - funcCols; ++j) {
-				Image view = blaze::submatrix(input, i, j, funcRows, funcCols);
+				DoubleImage window =
+						blaze::submatrix(input, i, j, funcRows, funcCols);
 
-				Image bwProd = view % kernel;
-				resultMat(i, j) = blaze::sum(bwProd);
+
+				DoubleImage bwProd = window % kernel;
+				auto filteredVal = blaze::sum(bwProd);
+				for (auto &v : filteredVal) {
+					v = v < 0 ? 0 : v;
+				}
+				resultMat(i, j) = filteredVal;
 			}
 		}
 
@@ -495,11 +501,22 @@ namespace image_filter {
 
 	template<typename Filter, typename ChannelType>
 	blaze::DynamicMatrix<ChannelType>
-	imfilter(const blaze::DynamicMatrix<ChannelType> &img, const Filter &impl, const PadModel<ChannelType> &padmodel) {
+	imfilter(const blaze::DynamicMatrix<ChannelType> &img, const Filter &impl,
+			 const PadModel<ChannelType> &padmodel, bool full = true) {
 		auto kernel = impl();
-		Shape padShape{kernel.rows(), kernel.columns()};
-		auto paddedImage = padmodel.pad(padShape, img);
-		return imgcov2(paddedImage, kernel);
+		Shape padShape{kernel.rows() - 1, kernel.columns() - 1};
+		auto[paddedImage, imgCord] = padmodel.pad(padShape, img);
+		auto ret = imgcov2(paddedImage, kernel);
+		if (full) {
+			return ret;
+		} else {
+			return blaze::submatrix(ret,
+					std::max<size_t>(0, imgCord[0] - 1),
+					std::max<size_t>(0, imgCord[1] - 1),
+					img.rows(),
+					img.columns());
+		}
+
 	}
 
 }
