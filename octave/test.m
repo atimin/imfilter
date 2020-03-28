@@ -1,6 +1,9 @@
 A = [1 2 3; 4 5 6; 7 8 9];
-B = padarray (A, [5 5], "symmetric", "both")
+H = fspecial('disk', [3]);
+[frows, fcols, tmp] = size(H);
 
+B = padarray (A, floor([frows/2, fcols/2]), "both", 0)
+C = conv2(B, H, "full")
 
 ##I = imread('img.png');
 ##subplot(2,2,1);imshow(I);title('Original Image'); 

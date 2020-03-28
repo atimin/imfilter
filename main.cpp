@@ -62,16 +62,20 @@ int main() {
 //	assert(bothCircular(10, 10) == img1(0, 0));
 
 
-	AverageFilter averageFilter(2, 3);
+	Shape padShape{2, 3};
+	AverageFilter averageFilter(padShape);
 
 	auto filter = averageFilter();
+	pretty_print("filter", filter);
+
 	assert(blaze::size(filter) == 6);
 	assert(filter(0, 0) == 0.16666666666666666);
 	assert(filter(1, 2) == 0.16666666666666666);
 
-	Shape padShape{static_cast<size_t >(std::floor(filter.rows())),
-				   static_cast<size_t >(std::floor(filter.columns()))};
-	auto prepCov2 = PadModel<RGB>(PadDirection::BOTH, PadType::CONST).pad(padShape, img1);
+
+	PadModel<RGB> bothConstModel(PadDirection::BOTH, PadType::CONST);
+
+	auto prepCov2 = bothConstModel.pad(padShape, img1);
 	pretty_print("PrepCov2", prepCov2);
 	auto cov2Mat = imgcov2(prepCov2, filter);
 	pretty_print("Cov2", cov2Mat);
@@ -82,6 +86,8 @@ int main() {
 	assert(cov2Mat(3, 3) == (RGB{4,4,4}));
 	assert(cov2Mat(4, 5) == (RGB{1,1,1}));
 
-//	imfilter(img1, averageFilter, bothZero);
+	auto averageFilterResult = imfilter(img1, averageFilter, bothConstModel);
+	pretty_print("averageFilterResult", averageFilterResult);
+	assert(averageFilterResult == cov2Mat);
 	return 0;
 }

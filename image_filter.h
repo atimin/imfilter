@@ -9,7 +9,7 @@
 
 namespace image_filter {
 
-	using RGB = blaze::StaticVector<uint8_t , 3>;
+	using RGB = blaze::StaticVector<uint8_t, 3>;
 	using Image = blaze::DynamicMatrix<RGB>;
 	using FilterKernel = blaze::DynamicMatrix<double>;
 
@@ -18,7 +18,7 @@ namespace image_filter {
 		for (size_t i = 0; i < img.rows(); ++i) {
 			for (size_t j = 0; j < img.columns(); ++j) {
 				const RGB &point = img(i, j);
-				std::cout << "(" << (int)point[0] << "," << (int) point[1] << "," << (int) point[2] << ")\t";
+				std::cout << "(" << (int) point[0] << "," << (int) point[1] << "," << (int) point[2] << ")\t";
 			}
 
 			std::cout << "\n";
@@ -40,21 +40,22 @@ namespace image_filter {
 		std::cout << std::endl;
 	}
 
+	using Shape = blaze::StaticVector<size_t, 2>;
+
 	/**
 	 * 	Average filter
 	 */
 	class AverageFilter {
 	public:
-		AverageFilter(size_t h, size_t w) : _h(h), _w(w) {}
+		AverageFilter(const Shape& shape) : _shape(shape){}
 
 		FilterKernel operator()() const {
-			FilterKernel f(_h, _w, 1.0);
-			return f / (_h * _w);
+			FilterKernel f(_shape[0], _shape[1], 1.0);
+			return f / blaze::prod(_shape);
 		}
 
 	private:
-		size_t _h;
-		size_t _w;
+		Shape _shape;
 	};
 
 	enum class PadDirection {
@@ -69,8 +70,6 @@ namespace image_filter {
 		SYMMETRIC,
 		CIRCULAR,
 	};
-
-	using Shape = blaze::StaticVector<size_t, 2>;
 
 	template<typename T>
 	class PadModel {
@@ -125,8 +124,6 @@ namespace image_filter {
 						} else if (_padType == PadType::SYMMETRIC) {
 							// TODO: Must be implemented!
 						}
-
-
 					}
 				}
 			}
@@ -140,22 +137,12 @@ namespace image_filter {
 		T _initValue;
 	};
 
-//	template<typename T, typename P>
-//	void bwmul(blaze::DynamicMatrix<T> &input, const blaze::DynamicMatrix<P> &kernel) {
-//		assert(input.rows() == kernel.rows);
-//		assert(input.columns() == kernel.columns());
-//
-//		for (int i = 0; i < input.rows(); ++i) {
-//			for (auto j = 0; j < input.columns(); ++j) {
-//				input(i, j) = input(i, j) * kernel(i, j);
-//			}
-//		}
-//	}
-
-	Image imgcov2(const Image &input, FilterKernel &kernel) {
+	template<typename ChannelType>
+	blaze::DynamicMatrix<ChannelType> imgcov2(const blaze::DynamicMatrix<ChannelType> &input, FilterKernel &kernel) {
 		size_t funcRows = kernel.rows();
 		size_t funcCols = kernel.columns();
 
+		//TODO: must have full or same flags
 		Image resultMat(input.rows() - std::ceil((double) funcRows / 2),
 						input.columns() - std::ceil((double) funcCols / 2));
 		for (auto i = 0; i < input.rows() - funcRows; ++i) {
@@ -170,11 +157,13 @@ namespace image_filter {
 		return resultMat;
 	}
 
-	template<typename Filter>
-	Image imfilter(const Image &img, const Filter &impl, const PadModel<RGB> &padmodel) {
-		auto filter = impl();
-		auto paddedImage = padmodel.pad(Shape{filter.rows() / 2, filter.columns() / 2}, img);
-
+	template<typename Filter, typename ChannelType>
+	blaze::DynamicMatrix<ChannelType>
+	imfilter(const blaze::DynamicMatrix<ChannelType> &img, const Filter &impl, const PadModel<ChannelType> &padmodel) {
+		auto kernel = impl();
+		Shape padShape{kernel.rows(),kernel.columns()};
+		auto paddedImage = padmodel.pad(padShape, img);
+		return imgcov2(paddedImage, kernel);
 	}
 
 }
