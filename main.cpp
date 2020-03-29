@@ -1,7 +1,46 @@
 #include <iostream>
 #include "image_filter.h"
 
-using namespace image_filter;
+using namespace image_processing;
+
+void imgprint(const std::string &name, const Image &img) {
+	std::cout << name << "[" << img.rows() << ", " << img.columns() << "]: \n";
+	for (size_t i = 0; i < img.rows(); ++i) {
+		for (size_t j = 0; j < img.columns(); ++j) {
+			const RGB &point = img(i, j);
+			std::cout << "(" << (int) point[0] << "," << (int) point[1] << "," << (int) point[2] << ")\t";
+		}
+
+		std::cout << "\n";
+	}
+
+	std::cout << std::endl;
+}
+
+void krprint(const std::string &name, const FilterKernel &img) {
+	std::cout << name << "[" << img.rows() << ", " << img.columns() << "]: \n";
+	for (size_t i = 0; i < img.rows(); ++i) {
+		for (size_t j = 0; j < img.columns(); ++j) {
+			std::cout << "(" << img(i, j) << ")\t";
+		}
+
+		std::cout << "\n";
+	}
+
+	std::cout << std::endl;
+}
+
+template<typename T, bool P>
+void vecprint(const std::string &name, const blaze::DynamicVector<T, P> &vec) {
+	std::cout << name << "[" << vec.size() << "]: \n";
+	for (auto &val : vec) {
+		std::cout << "[" << val << "]\t";
+	}
+
+
+	std::cout << std::endl;
+}
+
 
 bool eq(double a, double b) {
 	return fabs(a - b) < 0.001;

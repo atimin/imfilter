@@ -10,52 +10,21 @@
 #include <blaze/Math.h>
 #include <blaze/Blaze.h>
 
-namespace image_filter {
-
+namespace image_processing {
 	using RGB = blaze::StaticVector<uint8_t, 3>;
 	using Image = blaze::DynamicMatrix<RGB>;
 	using FilterKernel = blaze::DynamicMatrix<double>;
-
-	void imgprint(const std::string &name, const Image &img) {
-		std::cout << name << "[" << img.rows() << ", " << img.columns() << "]: \n";
-		for (size_t i = 0; i < img.rows(); ++i) {
-			for (size_t j = 0; j < img.columns(); ++j) {
-				const RGB &point = img(i, j);
-				std::cout << "(" << (int) point[0] << "," << (int) point[1] << "," << (int) point[2] << ")\t";
-			}
-
-			std::cout << "\n";
-		}
-
-		std::cout << std::endl;
-	}
-
-	void krprint(const std::string &name, const FilterKernel &img) {
-		std::cout << name << "[" << img.rows() << ", " << img.columns() << "]: \n";
-		for (size_t i = 0; i < img.rows(); ++i) {
-			for (size_t j = 0; j < img.columns(); ++j) {
-				std::cout << "(" << img(i, j) << ")\t";
-			}
-
-			std::cout << "\n";
-		}
-
-		std::cout << std::endl;
-	}
-
-	template<typename T, bool P>
-	void vecprint(const std::string &name, const blaze::DynamicVector<T, P> &vec) {
-		std::cout << name << "[" << vec.size() << "]: \n";
-		for (auto &val : vec) {
-			std::cout << "[" << val << "]\t";
-		}
-
-
-		std::cout << std::endl;
-	}
-
 	using Shape = blaze::StaticVector<size_t, 2>;
 
+
+	/**
+	 *  The analog of Matlab's meshgrid
+	 *
+	 * @tparam T type of the elements
+	 * @param x x-coordinates over grid
+	 * @param y  y-coordinates over grid
+	 * @return returns 2-D grid coordinates based on the coordinates contained in vectors x and y
+	 */
 	template<typename T>
 	std::pair<blaze::DynamicMatrix<T>, blaze::DynamicMatrix<T>>
 	meshgrid(const blaze::DynamicVector<T, blaze::rowVector> &x,
@@ -74,6 +43,15 @@ namespace image_filter {
 		return std::make_pair(xMat, yMat);
 	}
 
+	/**
+	 * Creates a vector as range between two values
+	 * @tparam T type of the lements
+	 * @tparam P blaze::columnVector or blaze::rawVector
+	 * @param start
+	 * @param stop
+	 * @param step
+	 * @return
+	 */
 	template<typename T, bool P>
 	blaze::DynamicVector<T, P> range(T start, T stop, T step = 1) {
 		blaze::DynamicVector<T, P> vec(std::abs((stop - start) / step) + 1);
@@ -85,6 +63,13 @@ namespace image_filter {
 		return vec;
 	}
 
+	/**
+	 * Finds elements in an intput matrix that corseponds true in the conditional matrix
+	 * @tparam T the type of the elements
+	 * @param input input matrix
+	 * @param cond the conditional matrix
+	 * @return returns a matrix of coordinates of founded elements
+	 */
 	template<typename T>
 	blaze::DynamicVector<std::pair<size_t, size_t>, blaze::columnVector>
 	mfind(const blaze::DynamicMatrix<T> &input, const blaze::DynamicMatrix<bool> &cond) {
@@ -101,7 +86,12 @@ namespace image_filter {
 		return blaze::DynamicVector<std::pair<size_t, size_t>, blaze::columnVector>(indecies.size(), indecies.data());
 	}
 
-
+	/**
+	 * Rotetes matrix on 90 degree clockwise
+	 * @tparam T type of the elements
+	 * @param input matrix to rotate
+	 * @return the rotated matrix
+	 */
 	template<typename T>
 	blaze::DynamicMatrix<T> rot90(const blaze::DynamicMatrix<T> &input) {
 		blaze::DynamicMatrix<T> out(input.columns(), input.rows());
@@ -113,6 +103,12 @@ namespace image_filter {
 		return out;
 	}
 
+	/**
+	 * Flips a matrix to down (analog og Matlab's flipud)
+	 * @tparam T type of the elements
+	 * @param input matrix to modify
+	 * @return the flipped matrix
+	 */
 	template<typename T>
 	blaze::DynamicMatrix<T> flipud(const blaze::DynamicMatrix<T> &input) {
 		blaze::DynamicMatrix<T> out(input.rows(), input.columns());
@@ -128,6 +124,10 @@ namespace image_filter {
 	 */
 	class AverageFilter {
 	public:
+		/**
+		 * Creates an averaging filter
+		  * @param shape the shape of the kernel
+		  */
 		AverageFilter(const Shape &shape) {
 			FilterKernel f(shape[0], shape[1], 1.0);
 			_kernel = f / blaze::prod(shape);
@@ -146,11 +146,15 @@ namespace image_filter {
 	 */
 	class DiskFilter {
 	public:
+		/**
+		 * Creates circular averaging filter. Kernel size 2*rad+1
+		 * @param rad the radius of the kernel
+		 */
 		explicit DiskFilter(double rad) : _rad(rad) {};
 
 		FilterKernel operator()() const {
 
-
+#if 0
 			auto crad = std::ceil(_rad - 0.5);
 			size_t matSize = crad * 2 + 1;
 
@@ -158,15 +162,11 @@ namespace image_filter {
 			auto yrange = range<FilterKernel::ElementType, blaze::columnVector>(-crad, crad);
 			auto[xMat, yMat] = meshgrid(xrange, yrange);
 
-			krprint("xMat", xMat);
-			krprint("yMat", yMat);
 
 			FilterKernel xymaxMat = blaze::max(blaze::abs(xMat), blaze::abs(yMat));
 			FilterKernel xyminMat = blaze::min(blaze::abs(xMat), blaze::abs(yMat));
 
-			krprint("xMat", xymaxMat);
-			krprint("yMat", xyminMat);
-
+#endif
 			// TODO: Next steps are not clear. Implement!!!
 			return FilterKernel();
 		}
@@ -179,11 +179,15 @@ namespace image_filter {
 	/**
 	 * Gaussian lowpass filter
 	 */
-
 	class GaussianFilter {
 		friend class LogFilter;
 
 	public:
+		/**
+		 * Creates a rotationally symmetric Gaussian lowpass filter
+		 * @param shape the shape of the filter
+		 * @param sigma standard deviation
+		 */
 		GaussianFilter(const Shape &shape, double sigma) {
 			auto halfShape =
 					(static_cast<blaze::StaticVector<FilterKernel::ElementType, 2>>(shape) - 1) / 2;
@@ -220,6 +224,11 @@ namespace image_filter {
 	 */
 	class LaplacianFilter {
 	public:
+		/**
+		 * Creates a 3-by-3 filter approximating the shape
+		 * of the two-dimensional Laplacian operator.
+		 * @param alpha must be in the range 0.0 to 1.0.
+		 */
 		explicit LaplacianFilter(double alpha) {
 			alpha = std::max<double>(0, std::min<double>(alpha, 1));
 			auto h1 = alpha / (alpha + 1);
@@ -240,12 +249,16 @@ namespace image_filter {
 
 	};
 
-
 	/**
-	 * Laplacian filter
+	 * Rotationally symmetric Laplacian of Gaussian filter
 	 */
 	class LogFilter {
 	public:
+		/**
+		 * Creates a rotationally symmetric Laplacian of Gaussian filter
+		 * @param shape the shape of the kernel
+		 * @param sigma sigma standard deviation
+		 */
 		explicit LogFilter(const Shape &shape, double sigma) {
 			auto std2 = sigma * sigma;
 			GaussianFilter gausFilter(shape, sigma);
@@ -265,11 +278,17 @@ namespace image_filter {
 	};
 
 	/**
-	 * Motion filter
+	 * Filter to approximate, once convolved with an image,
+	 * the linear motion of a camera
 	 */
 	class MotionFilter {
 	public:
-		explicit MotionFilter(double len, int theta) {
+		/**
+		 * Creates a filter
+		 * @param len linear motion of a camera in pixels
+		 * @param theta motion angle in degrees
+		 */
+		MotionFilter(double len, int theta) {
 			len = std::max<double>(1, len);
 			auto half = (len - 1) / 2;
 			auto phi = static_cast<double>(theta % 180) / 180 * M_PI;
@@ -338,6 +357,11 @@ namespace image_filter {
 	 */
 	class PrewittFilter {
 	public:
+
+		/**
+		 * Creates 3-by-3 filter that emphasize
+		 * horizontal edges by approximating a vertical gradient.
+		 */
 		PrewittFilter() :
 				_kernel{
 						{1,  1,  1},
@@ -358,6 +382,10 @@ namespace image_filter {
 	 */
 	class UnsharpFilter {
 	public:
+		/**
+		 * Creates 3-by-3 unsharp contra enhancement filter.
+		 * @param alpha must be in the range 0.0 to 1.0
+		 */
 		UnsharpFilter(double alpha) {
 			_kernel = FilterKernel{
 					{0, 0, 0},
@@ -379,6 +407,11 @@ namespace image_filter {
  	*/
 	class SobelFilter {
 	public:
+		/**
+		 * Creates 3-by-3 filter that emphasizes
+		 * horizontal edges utilizing the smoothing effect by approximating a
+		 * vertical gradient
+		 */
 		SobelFilter() :
 				_kernel{
 						{1,  2,  1},
@@ -408,12 +441,29 @@ namespace image_filter {
 		CIRCULAR,
 	};
 
+	/**
+	 * Implements different ways to pad images before to apply a filter on them
+	 * see Matlab's padarray for more details
+	 * @tparam T
+	 */
 	template<typename T>
 	class PadModel {
 	public:
+		/**
+		 * Creates the model
+		 * @param padDirection
+		 * @param padType
+		 * @param initValue
+		 */
 		PadModel(PadDirection padDirection, PadType padType, T initValue = {})
 				: _padDirection(padDirection), _padType(padType), _initValue(initValue) {};
 
+		/**
+		 * Pads the matrix
+		 * @param shape shape of the padding
+		 * @param src matrix to pad
+		 * @return the padded matrix
+		 */
 		std::pair<blaze::DynamicMatrix<T>, Shape> pad(const Shape &shape, const blaze::DynamicMatrix<T> &src) const {
 			using namespace blaze;
 			size_t padRow = shape[0];
@@ -461,8 +511,8 @@ namespace image_filter {
 							int distX = padRow - i;
 							int distY = padCol - j;
 
-							int xN = std::ceil((float)distX / src.rows());
-							int yN = std::ceil((float)distY / src.columns());
+							int xN = std::ceil((float) distX / src.rows());
+							int yN = std::ceil((float) distY / src.columns());
 							int cordMx = padRow - xN * src.rows();
 							int cordMy = padCol - yN * src.columns();
 							int xi = (i - cordMx) % src.rows();
@@ -485,6 +535,12 @@ namespace image_filter {
 		T _initValue;
 	};
 
+	/**
+	 * Returns the two-dimensional convolution of a matrix and kernel
+	 * @param input input matrix
+	 * @param kernel the kernel to convole 
+	 * @return
+	 */
 	Image imgcov2(const Image &input, const FilterKernel &kernel) {
 		size_t funcRows = kernel.rows();
 		size_t funcCols = kernel.columns();
@@ -510,10 +566,20 @@ namespace image_filter {
 		return resultMat;
 	}
 
+	/**
+	 * Image filter 
+	 * @tparam Filter type of the filter 
+	 * @tparam ChannelType type of the chanel (RGB or mono)
+	 * @param img image to filter
+	 * @param impl implementation of the filter
+	 * @param padmodel padding
+	 * @param full if true it returns the matrix with padding, else returns only the image
+	 * @return the filtered image
+	 */
 	template<typename Filter, typename ChannelType>
 	blaze::DynamicMatrix<ChannelType>
 	imfilter(const blaze::DynamicMatrix<ChannelType> &img, const Filter &impl,
-			 const PadModel<ChannelType> &padmodel, bool full = true, bool corr = true) {
+			 const PadModel<ChannelType> &padmodel, bool full = true) {
 		auto kernel = impl();
 		Shape padShape{kernel.rows() - 1, kernel.columns() - 1};
 		auto[paddedImage, imgCord] = padmodel.pad(padShape, img);
@@ -531,4 +597,4 @@ namespace image_filter {
 	}
 
 }
-#endif //GAUSFILTER_IMAGEFILTER_H
+#endif //IMAGE_FILTER
