@@ -1,0 +1,6 @@
+[submodule "libbmp"]
+	path = libbmp
+	url = https://github.com/marc-q/libbmp.git
+[submodule "CImg"]
+	path = CImg
+	url = https://github.com/dtschump/CImg.git

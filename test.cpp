@@ -3,7 +3,7 @@
 
 using namespace image_processing;
 
-void imgprint(const std::string &name, const Image &img) {
+void imgprint(const std::string &name, const Image<RGB> &img) {
 	std::cout << name << "[" << img.rows() << ", " << img.columns() << "]: \n";
 	for (size_t i = 0; i < img.rows(); ++i) {
 		for (size_t j = 0; j < img.columns(); ++j) {
@@ -48,9 +48,9 @@ bool eq(double a, double b) {
 
 int main() {
 
-
+	blaze::setNumThreads( 4 );
 	// TEST PadModel
-	Image img1 = {
+	Image<RGB> img1 = {
 			{{1, 1, 1}, {2, 2, 2}, {3, 3, 3}},
 			{{4, 4, 4}, {5, 5, 5}, {6, 6, 6}},
 			{{7, 7, 7}, {8, 8, 8}, {9, 9, 9}},
@@ -131,7 +131,7 @@ int main() {
 
 	PadModel<RGB> bothConstModel(PadDirection::BOTH, PadType::CONST);
 
-	Image prepCov2 = bothConstModel.pad(padShape, img1).first;
+	Image<RGB> prepCov2 = bothConstModel.pad(padShape, img1).first;
 	imgprint("PrepCov2", prepCov2);
 	auto cov2Mat = imgcov2(prepCov2, avgKernel);
 	imgprint("Cov2", cov2Mat);
@@ -223,5 +223,26 @@ int main() {
 	assert(unsharpFilterResult(1, 1) == (RGB{5,5,5}));
 	assert(unsharpFilterResult(1, 2) == (RGB{13,13,13}));
 
+	Image<RGB> img2 = {
+			{{1, 10, 11}, {2, 20, 22}, {3, 30, 33}},
+			{{4, 40, 44}, {5, 50, 55}, {6, 60, 66}},
+			{{7, 70, 77}, {8, 80, 88}, {9, 90, 99}},
+	};
+
+	auto test1 = imfilter(img2, AverageFilter(Shape{2,2}), bothConstModel, true);
+	imgprint("test1", test1);
+
+	auto test2= imfilter(img1, AverageFilter(Shape{2,2}), bothConstModel, true);
+	imgprint("test2", test2);
+
+
+	Image<Gray16> grayImg = {
+			{1, 2, 3},
+			{4, 5, 6},
+			{7, 8, 9},
+	};
+	PadModel<Gray16> bothConstModelGray(PadDirection::BOTH, PadType::CONST);
+	auto grayRes= imfilter(grayImg, AverageFilter(Shape{2,2}), bothConstModelGray, true);
+	imgprint("grayRes", grayRes);
 	return 0;
 }
