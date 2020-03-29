@@ -488,6 +488,7 @@ namespace image_processing {
 			}
 
 			blaze::submatrix(dst, padRow, padCol, src.rows(), src.columns()) = src;
+			// Padding
 			for (size_t i = 0; i<dst.rows(); ++i) {
 				for (size_t j = 0; j < dst.columns(); ++j) {
 					int si = i - padRow;
@@ -495,32 +496,44 @@ namespace image_processing {
 
 					bool inside = si >= 0 && si < src.rows()
 								  && sj >= 0 && sj < src.columns();
-					if (!inside) {
-						if (_padType == PadType::REPLICATE) {
-							si = std::max<int>(0, si);
-							si = std::min<int>(src.rows() - 1, si);
+					if (inside) {
+						j += src.columns();    //work only in pad area
+					} else {
+						switch (_padType) {
+							case PadType::CONST:
+								break;
 
-							sj = std::max<int>(0, sj);
-							sj = std::min<int>(src.columns() - 1, sj);
-							dst(i, j) = src(si, sj);
-						} else if (_padType == PadType::CIRCULAR) {
-							si = (i + padRow + 1) % src.rows();
-							sj = (j + padCol + 1) % src.columns();
-							dst(i, j) = src(si, sj);
-						} else if (_padType == PadType::SYMMETRIC) {
-							int distX = padRow - i;
-							int distY = padCol - j;
+							case PadType::REPLICATE:
+								si = std::max<int>(0, si);
+								si = std::min<int>(src.rows() - 1, si);
 
-							int xN = std::ceil((float) distX / src.rows());
-							int yN = std::ceil((float) distY / src.columns());
-							int cordMx = padRow - xN * src.rows();
-							int cordMy = padCol - yN * src.columns();
-							int xi = (i - cordMx) % src.rows();
-							int xj = (j - cordMy) % src.columns();
+								sj = std::max<int>(0, sj);
+								sj = std::min<int>(src.columns() - 1, sj);
+								dst(i, j) = src(si, sj);
+								break;
 
-							si = xN % 2 == 0 ? xi : src.rows() - xi - 1;
-							sj = yN % 2 == 0 ? xj : src.columns() - xj - 1;
-							dst(i, j) = src(si, sj);
+							case PadType::CIRCULAR:
+								si = (i + padRow + 1) % src.rows();
+								sj = (j + padCol + 1) % src.columns();
+								dst(i, j) = src(si, sj);
+								break;
+
+							case PadType::SYMMETRIC: {
+								int distX = padRow - i;
+								int distY = padCol - j;
+
+								int xN = std::ceil((float) distX / src.rows());
+								int yN = std::ceil((float) distY / src.columns());
+								int cordMx = padRow - xN * src.rows();
+								int cordMy = padCol - yN * src.columns();
+								int xi = (i - cordMx) % src.rows();
+								int xj = (j - cordMy) % src.columns();
+
+								si = xN % 2 == 0 ? xi : src.rows() - xi - 1;
+								sj = yN % 2 == 0 ? xj : src.columns() - xj - 1;
+								dst(i, j) = src(si, sj);
+								break;
+							}
 						}
 					}
 				}
