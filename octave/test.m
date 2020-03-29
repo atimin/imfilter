@@ -8,7 +8,7 @@ A1(:,:,2) = A1(:,:,1)
 A1(:,:,3) = A1(:,:,1)
 A1 = uint8(A1)
 
-H = fspecial('motion', 3, 45);
+H = fspecial('motion',50, 45);
 [frows, fcols, tmp] = size(H);
 ##
 # B = padarray (A, floor([4,4]), "symmetric")

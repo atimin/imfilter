@@ -7,7 +7,7 @@
 #include "CImg/CImg.h"
 #include "image_filter.h"
 
-using namespace image_processing;
+using namespace metric;
 using namespace cimg_library;
 using namespace std::chrono;
 int main() {
@@ -23,7 +23,7 @@ int main() {
 	}
 
 	std::cout << "Created matrix " << imat.rows() << "x" << imat.columns() << " " << std::endl;
-	MotionFilter filter(50, 45);
+	MotionFilter filter(10, 45);
 	PadModel<RGB> padmodel(PadDirection::BOTH, PadType::CONST);
 
 	auto start = system_clock::now();

@@ -1,7 +1,8 @@
 #include <iostream>
 #include "image_filter.h"
 
-using namespace image_processing;
+using namespace metric;
+using namespace metric::image_processing_details;
 
 void imgprint(const std::string &name, const Image<RGB> &img) {
 	std::cout << name << "[" << img.rows() << ", " << img.columns() << "]: \n";
@@ -243,6 +244,6 @@ int main() {
 	};
 	PadModel<Gray16> bothConstModelGray(PadDirection::BOTH, PadType::CONST);
 	auto grayRes= imfilter(grayImg, AverageFilter(Shape{2,2}), bothConstModelGray, true);
-	imgprint("grayRes", grayRes);
+	krprint("grayRes", grayRes);
 	return 0;
 }
