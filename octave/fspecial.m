@@ -45,7 +45,7 @@ function h = fspecial(varargin)
     %   and columns in H or a scalar, in which case H is a square matrix.
     %   The default HSIZE is [5 5], the default SIGMA is 0.5.
     %
-    %   H = FSPECIAL('motion',LEN,THETA) returns a filter to approximate, once
+    %   H = FSPECIAL('',LEN,THETA) returns a filter to approximate, once
     %   convolved with an image, the linear motion of a camera by LEN pixels,
     %   with an angle of THETA degrees in a counter-clockwise direction. The
     %   filter becomes a vector for horizontal and vertical motions.  The

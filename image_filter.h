@@ -458,7 +458,19 @@ namespace image_filter {
 							sj = (j + padCol + 1) % src.columns();
 							dst(i, j) = src(si, sj);
 						} else if (_padType == PadType::SYMMETRIC) {
-							// TODO: Must be implemented!
+							int distX = padRow - i;
+							int distY = padCol - j;
+
+							int xN = std::ceil((float)distX / src.rows());
+							int yN = std::ceil((float)distY / src.columns());
+							int cordMx = padRow - xN * src.rows();
+							int cordMy = padCol - yN * src.columns();
+							int xi = (i - cordMx) % src.rows();
+							int xj = (j - cordMy) % src.columns();
+
+							si = xN % 2 == 0 ? xi : src.rows() - xi - 1;
+							sj = yN % 2 == 0 ? xj : src.columns() - xj - 1;
+							dst(i, j) = src(si, sj);
 						}
 					}
 				}
@@ -478,7 +490,6 @@ namespace image_filter {
 		size_t funcCols = kernel.columns();
 		using DoubleImage = blaze::DynamicMatrix<blaze::StaticVector<double, 3>>;
 
-		//TODO: must have full or same flags
 		Image resultMat(input.rows() - std::ceil((double) funcRows / 2),
 						input.columns() - std::ceil((double) funcCols / 2));
 		for (auto i = 0; i < input.rows() - funcRows; ++i) {
@@ -492,7 +503,7 @@ namespace image_filter {
 				for (auto &v : filteredVal) {
 					v = v < 0 ? 0 : v;
 				}
-				resultMat(i, j) = filteredVal;
+				resultMat(i, j) = blaze::round(filteredVal);
 			}
 		}
 
@@ -502,7 +513,7 @@ namespace image_filter {
 	template<typename Filter, typename ChannelType>
 	blaze::DynamicMatrix<ChannelType>
 	imfilter(const blaze::DynamicMatrix<ChannelType> &img, const Filter &impl,
-			 const PadModel<ChannelType> &padmodel, bool full = true) {
+			 const PadModel<ChannelType> &padmodel, bool full = true, bool corr = true) {
 		auto kernel = impl();
 		Shape padShape{kernel.rows() - 1, kernel.columns() - 1};
 		auto[paddedImage, imgCord] = padmodel.pad(padShape, img);
@@ -511,10 +522,10 @@ namespace image_filter {
 			return ret;
 		} else {
 			return blaze::submatrix(ret,
-					std::max<size_t>(0, imgCord[0] - 1),
-					std::max<size_t>(0, imgCord[1] - 1),
-					img.rows(),
-					img.columns());
+									std::max<size_t>(0, imgCord[0] - 1),
+									std::max<size_t>(0, imgCord[1] - 1),
+									img.rows(),
+									img.columns());
 		}
 
 	}

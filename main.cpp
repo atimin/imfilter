@@ -57,17 +57,27 @@ int main() {
 	assert(bothReplicate(4, 6) == img1(2, 2));
 	assert(bothReplicate(1, 2) == img1(0, 0));
 
-	//TODO: Must be implemented!
-//	auto bothCircular= PadModel<RGB>(PadDirection::BOTH, PadType::CIRCULAR).pad(Shape{4, 4}, img1);
-//	pretty_print("bothCircular", bothCircular);
-//
-//	assert(blaze::size(bothCircular) == 121);
-//	assert(bothCircular(0, 0) == img1(2, 2));
-//	assert(bothCircular(4, 9) == img1(0, 2));
-//	assert(bothCircular(4, 4) == img1(0, 0));
-//	assert(bothCircular(6, 6) == img1(2, 2));
-//	assert(bothCircular(10, 10) == img1(0, 0));
+	auto bothCircular= PadModel<RGB>(PadDirection::BOTH, PadType::CIRCULAR)
+	        .pad(Shape{4, 4}, img1).first;
+	imgprint("bothCircular", bothCircular);
 
+	assert(blaze::size(bothCircular) == 121);
+	assert(bothCircular(0, 0) == img1(2, 2));
+	assert(bothCircular(4, 9) == img1(0, 2));
+	assert(bothCircular(4, 4) == img1(0, 0));
+	assert(bothCircular(6, 6) == img1(2, 2));
+	assert(bothCircular(10, 10) == img1(0, 0));
+
+	auto symCircular= PadModel<RGB>(PadDirection::BOTH, PadType::SYMMETRIC)
+			.pad(Shape{4, 4}, img1).first;
+	imgprint("symCircular", symCircular);
+
+	assert(blaze::size(symCircular) == 121);
+	assert(symCircular(0, 0) == img1(2, 2));
+	assert(symCircular(0, 4) == img1(2, 0));
+	assert(symCircular(4, 4) == img1(0, 0));
+	assert(symCircular(7, 7) == img1(2, 2));
+	assert(symCircular(10, 5) == img1(0, 1));
 
 	Shape padShape{2, 3};
 	AverageFilter averageFilter(padShape);
@@ -90,8 +100,8 @@ int main() {
 	assert(blaze::size(cov2Mat) == 42);
 	assert(cov2Mat(0, 0) == (RGB{0, 0, 0}));
 	assert(cov2Mat(2, 2) == (RGB{2, 2, 2}));
-	assert(cov2Mat(3, 3) == (RGB{6, 6, 6}));
-	assert(cov2Mat(4, 5) == (RGB{1, 1, 1}));
+	assert(cov2Mat(3, 3) == (RGB{7, 7, 7}));
+	assert(cov2Mat(4, 5) == (RGB{2, 2, 2}));
 
 	auto averageFilterResult = imfilter(img1, averageFilter, bothConstModel);
 	imgprint("averageFilterResult", averageFilterResult);
@@ -164,7 +174,7 @@ int main() {
 	assert(blaze::size(unsharpFilterResult) == 25);
 	assert(unsharpFilterResult(0, 0) == (RGB{0,0,0}));
 	assert(unsharpFilterResult(2, 2) == (RGB{5,5,5}));
-	assert(unsharpFilterResult(2, 3) == (RGB{12,12,12}));
+	assert(unsharpFilterResult(2, 3) == (RGB{13,13,13}));
 
 	unsharpFilterResult = imfilter(img1, unsharpFilter, bothConstModel, false);
 	imgprint("unsharpFilterResult_same", unsharpFilterResult);
@@ -172,7 +182,7 @@ int main() {
 	assert(blaze::size(unsharpFilterResult) == 9);
 	assert(unsharpFilterResult(0, 0) == (RGB{0,0,0}));
 	assert(unsharpFilterResult(1, 1) == (RGB{5,5,5}));
-	assert(unsharpFilterResult(1, 2) == (RGB{12,12,12}));
+	assert(unsharpFilterResult(1, 2) == (RGB{13,13,13}));
 
 	return 0;
 }

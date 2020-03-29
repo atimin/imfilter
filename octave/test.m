@@ -6,13 +6,13 @@ A = uint8(A)
 H = fspecial('unsharp', 0.7);
 [frows, fcols, tmp] = size(H);
 ##
-##B = padarray (A, floor([frows/2, fcols/2]), "both", 0)
+B = padarray (A, floor([4,4]), "symmetric")
 ##C = conv2(B, H, "full")
 
 ##I = imread('img.png');
 ##subplot(2,2,1);imshow(I);title('Original Image'); 
 ##H = fspecial('average', [3, 3]);
-MotionBlur = imfilter(A,H,'both', 0, 'full', 'conv');
+MotionBlur = imfilter(A,H,'both', 0, 'full');
 ##subplot(2,2,2);imshow(MotionBlur);title('Motion Blurred Image');
 ##H = fspecial('disk',10);
 ##blurred = imfilter(I,H,'replicate');
