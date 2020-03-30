@@ -4,16 +4,34 @@
 using namespace metric;
 using namespace metric::image_processing_details;
 
-void imgprint(const std::string &name, const Image<RGB> &img) {
-	std::cout << name << "[" << img.rows() << ", " << img.columns() << "]: \n";
-	for (size_t i = 0; i < img.rows(); ++i) {
-		for (size_t j = 0; j < img.columns(); ++j) {
-			const RGB &point = img(i, j);
-			std::cout << "(" << (int) point[0] << "," << (int) point[1] << "," << (int) point[2] << ")\t";
+template<typename T, size_t N>
+void imgprint(const std::string &name, const Image<T, N> &img) {
+	for (size_t ch = 0; ch < img.size(); ++ch) {
+		std::cout << name << "[ch=" << ch << "][" << img[ch].rows() << ", " << img[ch].columns() << "]: \n";
+		for (size_t i = 0; i < img[ch].rows(); ++i) {
+			for (size_t j = 0; j < img[ch].columns(); ++j) {
+				std::cout << (double)img[ch](i, j) << "\t";
+			}
+
+			std::cout << "\n";
+		}
+	}
+
+	std::cout << std::endl;
+}
+
+
+template<typename T>
+void chprint(const std::string &name, const Channel<T> &ch) {
+	std::cout << name << "[" << ch.rows() << ", " << ch.columns() << "]: \n";
+	for (size_t i = 0; i < ch.rows(); ++i) {
+		for (size_t j = 0; j < ch.columns(); ++j) {
+			std::cout << (double)ch(i, j) << "\t";
 		}
 
 		std::cout << "\n";
 	}
+
 
 	std::cout << std::endl;
 }
@@ -22,7 +40,7 @@ void krprint(const std::string &name, const FilterKernel &img) {
 	std::cout << name << "[" << img.rows() << ", " << img.columns() << "]: \n";
 	for (size_t i = 0; i < img.rows(); ++i) {
 		for (size_t j = 0; j < img.columns(); ++j) {
-			std::cout << "(" << img(i, j) << ")\t";
+			std::cout << img(i, j) << "\t";
 		}
 
 		std::cout << "\n";
@@ -49,75 +67,73 @@ bool eq(double a, double b) {
 
 int main() {
 
-	blaze::setNumThreads( 4 );
+	blaze::setNumThreads(4);
 	// TEST PadModel
-	Image<RGB> img1 = {
-			{{1, 1, 1}, {2, 2, 2}, {3, 3, 3}},
-			{{4, 4, 4}, {5, 5, 5}, {6, 6, 6}},
-			{{7, 7, 7}, {8, 8, 8}, {9, 9, 9}},
+	Channel<uint8_t> ch1 = {
+			{1, 2, 3},
+			{4, 5, 6},
+			{7, 8, 9}
 	};
 
-	auto [bothWithZero, bothWithZeroCord] = PadModel<RGB>(PadDirection::BOTH, PadType::CONST)
-	        .pad(Shape{1, 2}, img1);
-	imgprint("bothWithZero", bothWithZero);
+	auto[bothWithZero, bothWithZeroCord] = PadModel<uint8_t>(PadDirection::BOTH, PadType::CONST)
+			.pad(Shape{1, 2}, ch1);
+	chprint("bothWithZero", bothWithZero);
 	vecprint("bothWithZeroCord", static_cast<blaze::DynamicVector<size_t>>(bothWithZeroCord));
 
 	assert(blaze::size(bothWithZero) == 35);
-	const RGB ZERO{0, 0, 0};
-	assert(bothWithZero(0, 0) == ZERO);
-	assert(bothWithZero(4, 6) == ZERO);
-	assert(bothWithZero(1, 2) == img1(0, 0));
+	assert(bothWithZero(0, 0) == 0);
+	assert(bothWithZero(4, 6) == 0);
+	assert(bothWithZero(1, 2) == ch1(0, 0));
 
-	auto preWithOnes = PadModel<RGB>(PadDirection::PRE, PadType::CONST, RGB{1, 1, 1})
-			.pad(Shape{2, 1}, img1).first;
-	imgprint("preWithOnes", preWithOnes);
-
-	assert(blaze::size(preWithOnes) == 20);
-	const RGB ONES{1, 1, 1};
-	assert(preWithOnes(0, 0) == ONES);
-	assert(preWithOnes(4, 3) == img1(2, 2));
-	assert(preWithOnes(2, 1) == img1(0, 0));
-
-	auto postWithOnes = PadModel<RGB>(PadDirection::POST, PadType::CONST, RGB{1, 1, 1})
-			.pad(Shape{2, 1}, img1).first;
-	imgprint("postWithOnes", postWithOnes);
+	auto preWithOnes = PadModel<uint8_t >(PadDirection::PRE, PadType::CONST, 1)
+			.pad(Shape{2, 1}, ch1).first;
+	chprint("preWithOnes", preWithOnes);
 
 	assert(blaze::size(preWithOnes) == 20);
-	assert(postWithOnes(4, 3) == ONES);
-	assert(postWithOnes(2, 2) == img1(2, 2));
-	assert(postWithOnes(0, 0) == img1(0, 0));
+	assert(preWithOnes(0, 0) == 1);
+	assert(preWithOnes(4, 3) == ch1(2, 2));
+	assert(preWithOnes(2, 1) == ch1(0, 0));
 
-	auto bothReplicate = PadModel<RGB>(PadDirection::BOTH, PadType::REPLICATE)
-	        .pad(Shape{1, 2}, img1).first;
-	imgprint("bothReplicate", bothReplicate);
+	auto postWithOnes = PadModel<uint8_t>(PadDirection::POST, PadType::CONST, 1)
+			.pad(Shape{2, 1}, ch1).first;
+	chprint("postWithOnes", postWithOnes);
+
+	assert(blaze::size(preWithOnes) == 20);
+	assert(postWithOnes(4, 3) == 1);
+	assert(postWithOnes(2, 2) == ch1(2, 2));
+	assert(postWithOnes(0, 0) == ch1(0, 0));
+
+	auto bothReplicate = PadModel<uint8_t>(PadDirection::BOTH, PadType::REPLICATE)
+			.pad(Shape{1, 2}, ch1).first;
+	chprint("bothReplicate", bothReplicate);
 
 	assert(blaze::size(bothReplicate) == 35);
-	assert(bothReplicate(0, 0) == img1(0, 0));
-	assert(bothReplicate(0, 3) == img1(0, 1));
-	assert(bothReplicate(4, 6) == img1(2, 2));
-	assert(bothReplicate(1, 2) == img1(0, 0));
+	assert(bothReplicate(0, 0) == ch1(0, 0));
+	assert(bothReplicate(0, 3) == ch1(0, 1));
+	assert(bothReplicate(4, 6) == ch1(2, 2));
+	assert(bothReplicate(1, 2) == ch1(0, 0));
 
-	auto bothCircular= PadModel<RGB>(PadDirection::BOTH, PadType::CIRCULAR)
-	        .pad(Shape{4, 4}, img1).first;
-	imgprint("bothCircular", bothCircular);
+	auto bothCircular = PadModel<uint8_t>(PadDirection::BOTH, PadType::CIRCULAR)
+			.pad(Shape{4, 4}, ch1).first;
+	chprint("bothCircular", bothCircular);
 
 	assert(blaze::size(bothCircular) == 121);
-	assert(bothCircular(0, 0) == img1(2, 2));
-	assert(bothCircular(4, 9) == img1(0, 2));
-	assert(bothCircular(4, 4) == img1(0, 0));
-	assert(bothCircular(6, 6) == img1(2, 2));
-	assert(bothCircular(10, 10) == img1(0, 0));
+	assert(bothCircular(0, 0) == ch1(2, 2));
+	assert(bothCircular(4, 9) == ch1(0, 2));
+	assert(bothCircular(4, 4) == ch1(0, 0));
+	assert(bothCircular(6, 6) == ch1(2, 2));
+	assert(bothCircular(10, 10) == ch1(0, 0));
 
-	auto symCircular= PadModel<RGB>(PadDirection::BOTH, PadType::SYMMETRIC)
-			.pad(Shape{4, 4}, img1).first;
-	imgprint("symCircular", symCircular);
+	auto symCircular = PadModel<uint8_t>(PadDirection::BOTH, PadType::SYMMETRIC)
+			.pad(Shape{4, 4}, ch1).first;
+	chprint("symCircular", symCircular);
 
 	assert(blaze::size(symCircular) == 121);
-	assert(symCircular(0, 0) == img1(2, 2));
-	assert(symCircular(0, 4) == img1(2, 0));
-	assert(symCircular(4, 4) == img1(0, 0));
-	assert(symCircular(7, 7) == img1(2, 2));
-	assert(symCircular(10, 5) == img1(0, 1));
+	assert(symCircular(0, 0) == ch1(2, 2));
+	assert(symCircular(0, 4) == ch1(2, 0));
+	assert(symCircular(4, 4) == ch1(0, 0));
+	assert(symCircular(7, 7) == ch1(2, 2));
+	assert(symCircular(10, 5) == ch1(0, 1));
 
 	Shape padShape{2, 3};
 	AverageFilter averageFilter(padShape);
@@ -130,22 +146,23 @@ int main() {
 	assert(avgKernel(1, 2) == 0.16666666666666666);
 
 
-	PadModel<RGB> bothConstModel(PadDirection::BOTH, PadType::CONST);
+	PadModel<uint8_t> bothConstModel(PadDirection::BOTH, PadType::CONST);
 
-	Image<RGB> prepCov2 = bothConstModel.pad(padShape, img1).first;
-	imgprint("PrepCov2", prepCov2);
+	auto prepCov2 = bothConstModel.pad(padShape, ch1).first;
+	chprint("PrepCov2", prepCov2);
 	auto cov2Mat = imgcov2(prepCov2, avgKernel);
-	imgprint("Cov2", cov2Mat);
+	chprint("Cov2", cov2Mat);
 
 	assert(blaze::size(cov2Mat) == 42);
-	assert(cov2Mat(0, 0) == (RGB{0, 0, 0}));
-	assert(cov2Mat(2, 2) == (RGB{2, 2, 2}));
-	assert(cov2Mat(3, 3) == (RGB{7, 7, 7}));
-	assert(cov2Mat(4, 5) == (RGB{2, 2, 2}));
+	assert(cov2Mat(0, 0) == 0);
+	assert(cov2Mat(2, 2) == 2);
+	assert(cov2Mat(3, 3) == 7);
+	assert(cov2Mat(4, 5) == 2);
 
-	auto averageFilterResult = imfilter(img1, averageFilter, bothConstModel);
+
+	auto averageFilterResult = imfilter(Image<uint8_t,1>{ch1}, averageFilter, bothConstModel);
 	imgprint("averageFilterResult", averageFilterResult);
-//	assert(averageFilterResult == cov2Mat);
+
 
 //	DiskFilter diskFilter(3.2);
 //	auto diskKernel = diskFilter();
@@ -208,42 +225,21 @@ int main() {
 	assert(eq(unsharpKernel(1, 1), 3.35294));
 	assert(eq(unsharpKernel(2, 1), -0.176471));
 
-	auto unsharpFilterResult = imfilter(img1, unsharpFilter, bothConstModel, true);
+	auto unsharpFilterResult = imfilter(Image<uint8_t,1>{ch1}, unsharpFilter, bothConstModel, true);
 	imgprint("unsharpFilterResult_full", unsharpFilterResult);
 
-	assert(blaze::size(unsharpFilterResult) == 25);
-	assert(unsharpFilterResult(0, 0) == (RGB{0,0,0}));
-	assert(unsharpFilterResult(2, 2) == (RGB{5,5,5}));
-	assert(unsharpFilterResult(2, 3) == (RGB{13,13,13}));
+	assert(blaze::size(unsharpFilterResult[0]) == 25);
+	assert(unsharpFilterResult[0](0, 0) == 0);
+	assert(unsharpFilterResult[0](2, 2) == 5);
+	assert(unsharpFilterResult[0](2, 3) == 13);
 
-	unsharpFilterResult = imfilter(img1, unsharpFilter, bothConstModel, false);
+	unsharpFilterResult = imfilter(Image<uint8_t,1>{ch1}, unsharpFilter, bothConstModel, false);
 	imgprint("unsharpFilterResult_same", unsharpFilterResult);
 
-	assert(blaze::size(unsharpFilterResult) == 9);
-	assert(unsharpFilterResult(0, 0) == (RGB{0,0,0}));
-	assert(unsharpFilterResult(1, 1) == (RGB{5,5,5}));
-	assert(unsharpFilterResult(1, 2) == (RGB{13,13,13}));
+	assert(blaze::size(unsharpFilterResult[0]) == 9);
+	assert(unsharpFilterResult[0](0, 0) == 0);
+	assert(unsharpFilterResult[0](1, 1) == 5);
+	assert(unsharpFilterResult[0](1, 2) == 13);
 
-	Image<RGB> img2 = {
-			{{1, 10, 11}, {2, 20, 22}, {3, 30, 33}},
-			{{4, 40, 44}, {5, 50, 55}, {6, 60, 66}},
-			{{7, 70, 77}, {8, 80, 88}, {9, 90, 99}},
-	};
-
-	auto test1 = imfilter(img2, AverageFilter(Shape{2,2}), bothConstModel, true);
-	imgprint("test1", test1);
-
-	auto test2= imfilter(img1, AverageFilter(Shape{2,2}), bothConstModel, true);
-	imgprint("test2", test2);
-
-
-	Image<Gray16> grayImg = {
-			{1, 2, 3},
-			{4, 5, 6},
-			{7, 8, 9},
-	};
-	PadModel<Gray16> bothConstModelGray(PadDirection::BOTH, PadType::CONST);
-	auto grayRes= imfilter(grayImg, AverageFilter(Shape{2,2}), bothConstModelGray, true);
-	krprint("grayRes", grayRes);
 	return 0;
 }

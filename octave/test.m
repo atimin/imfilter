@@ -8,7 +8,7 @@ A1(:,:,2) = A1(:,:,1)
 A1(:,:,3) = A1(:,:,1)
 A1 = uint8(A1)
 
-H = fspecial('motion',50, 45);
+H = fspecial('prewitt');
 [frows, fcols, tmp] = size(H);
 ##
 # B = padarray (A, floor([4,4]), "symmetric")
@@ -17,7 +17,8 @@ H = fspecial('motion',50, 45);
 I = imread('../cmake-build-debug/img.png');
 ##subplot(2,2,1);imshow(I);title('Original Image'); 
 ##H = fspecial('average', [3, 3]);
-BMP = imfilter(I,H,'both', 0, 'full');
+BMP = imfilter(I,H,'both', 0, 'full', 'conv');
+imwrite(BMP, 'img.bmp')
 subplot(2,2,2);imshow(BMP);title('Motion Blurred Image');
 ##H = fspecial('disk',10);
 ##blurred = imfilter(I,H,'replicate');

@@ -15,30 +15,31 @@ int main() {
 
 	std::cout << "Read file" << std::endl;
 
-	Image<RGB> imat(input.height(), input.width(), RGB{50, 50, 50});
-	for (int i = 0; i < imat.rows(); ++i) {
-		for (int j = 0; j < imat.columns(); ++j) {
-			imat(i, j) = RGB{input(j, i, 0, 0), input(j, i, 0, 1), input(j, i, 0, 2)};
+	auto rgbImg = iminit<uint8_t, 3>(input.height(), input.width(), 50);
+	for (int ch = 0; ch < rgbImg.size(); ++ch) {
+		for (int i = 0; i < rgbImg[ch].rows(); ++i) {
+			for (int j = 0; j < rgbImg[ch].columns(); ++j) {
+				rgbImg[ch](i, j) = input(j, i, 0, ch);
+			}
 		}
 	}
 
-	std::cout << "Created matrix " << imat.rows() << "x" << imat.columns() << " " << std::endl;
+	std::cout << "Created image " << rgbImg[0].rows() << "x" << rgbImg[0].columns() << " " << std::endl;
 	MotionFilter filter(10, 45);
-	PadModel<RGB> padmodel(PadDirection::BOTH, PadType::CONST);
+	PadModel<uint8_t> padmodel(PadDirection::BOTH, PadType::CONST);
 
 	auto start = system_clock::now();
-	Image<RGB> omat = imfilter(imat, filter, padmodel, false);
+	Image<uint8_t, 3> filterImage = imfilter(rgbImg, filter, padmodel, false);
 
 	std::cout << "Filtered image for " << duration_cast<milliseconds>(system_clock::now() -start).count() << "ms" << std::endl;
-	CImg<unsigned char> out(omat.columns(), omat.rows(), 1, 3);
-	for (int i = 0; i < omat.rows(); ++i) {
-		for (int j = 0; j < omat.columns(); ++j) {
-			out(j, i, 0, 0) = omat(i, j)[0];
-			out(j, i, 0, 1) = omat(i, j)[1];
-			out(j, i, 0, 2) = omat(i, j)[2];
+	CImg<unsigned char> out(filterImage[0].columns(), filterImage[0].rows(), 1, 3);
+	for (int ch = 0; ch < filterImage.size(); ++ch) {
+		for (int i = 0; i < filterImage[ch].rows(); ++i) {
+			for (int j = 0; j < filterImage[ch].columns(); ++j) {
+				out(j, i, 0, ch) = filterImage[ch](i, j);
+			}
 		}
 	}
-
 	std::cout << "Saved result" << std::endl;
 
 	out.save_bmp("img2.bmp");
