@@ -136,7 +136,7 @@ int main() {
 	assert(symCircular(10, 5) == ch1(0, 1));
 
 	Shape padShape{2, 3};
-	AverageFilter averageFilter(padShape);
+	FilterType::AVERAGE averageFilter(padShape[0], padShape[1]);
 
 	auto avgKernel = averageFilter();
 	krprint("filter", avgKernel);
@@ -160,7 +160,7 @@ int main() {
 	assert(cov2Mat(4, 5) == 2);
 
 
-	auto averageFilterResult = imfilter(Image<uint8_t,1>{ch1}, averageFilter, bothConstModel);
+	auto averageFilterResult = filter(Image<uint8_t,1>{ch1}, averageFilter, bothConstModel);
 	imgprint("averageFilterResult", averageFilterResult);
 
 
@@ -168,7 +168,7 @@ int main() {
 //	auto diskKernel = diskFilter();
 
 
-	GaussianFilter gaussianFilter(padShape, 0.2);
+	FilterType::GAUSSIAN gaussianFilter(padShape[0], padShape[1], 0.2);
 	auto gaussianKernel = gaussianFilter();
 	krprint("gaussianKernel", gaussianKernel);
 	assert(blaze::size(gaussianKernel) == 6);
@@ -177,7 +177,7 @@ int main() {
 	assert(eq(gaussianKernel(1, 2), 1.86331e-06));
 
 
-	LaplacianFilter laplacianFilter(0.2);
+	FilterType::LAPLACIAN laplacianFilter(0.2);
 	auto laplacianKernel = laplacianFilter();
 	krprint("laplacianKernel", laplacianKernel);
 	assert(blaze::size(laplacianKernel) == 9);
@@ -185,7 +185,7 @@ int main() {
 	assert(eq(laplacianKernel(1, 1), -3.3333));
 	assert(eq(laplacianKernel(2, 2), 0.16667));
 
-	LogFilter logFilter(padShape, 0.2);
+	FilterType::LOG logFilter(padShape[0], padShape[1], 0.2);
 	auto logKernel = logFilter();
 	krprint("logFilter", logKernel);
 	assert(blaze::size(logKernel) == 6);
@@ -193,7 +193,7 @@ int main() {
 	assert(eq(logKernel(1, 1), 35.4155));
 	assert(eq(logKernel(1, 2), -17.7077));
 
-	MotionFilter motFilter(3, 30);
+	FilterType::MOTION motFilter(3, 30);
 	auto motKernel = motFilter();
 	krprint("motFilter", motKernel);
 	assert(blaze::size(motKernel) == 9);
@@ -201,7 +201,7 @@ int main() {
 	assert(eq(motKernel(1, 1), 0.341361));
 	assert(eq(motKernel(1, 2), 0.16466));
 
-	PrewittFilter prewittFilter;
+	FilterType::PREWITT prewittFilter;
 	auto prewKernel = prewittFilter();
 	krprint("prewKernel", prewKernel);
 	assert(blaze::size(prewKernel) == 9);
@@ -209,7 +209,7 @@ int main() {
 	assert(eq(prewKernel(1, 1), 0));
 	assert(eq(prewKernel(2, 1), -1));
 
-	SobelFilter sobelFilter;
+	FilterType::SOBEL sobelFilter;
 	auto sobelKernel = sobelFilter();
 	krprint("sobelKernel", sobelKernel);
 	assert(blaze::size(sobelKernel) == 9);
@@ -217,7 +217,7 @@ int main() {
 	assert(eq(sobelKernel(1, 1), 0));
 	assert(eq(sobelKernel(2, 1), -2));
 
-	UnsharpFilter unsharpFilter(0.7);
+	FilterType::UNSHARP unsharpFilter(0.7);
 	auto unsharpKernel = unsharpFilter();
 	krprint("unsharpKernel", unsharpKernel);
 	assert(blaze::size(unsharpKernel) == 9);
@@ -225,7 +225,7 @@ int main() {
 	assert(eq(unsharpKernel(1, 1), 3.35294));
 	assert(eq(unsharpKernel(2, 1), -0.176471));
 
-	auto unsharpFilterResult = imfilter(Image<uint8_t,1>{ch1}, unsharpFilter, bothConstModel, true);
+	auto unsharpFilterResult = filter(Image<uint8_t,1>{ch1}, unsharpFilter, bothConstModel, true);
 	imgprint("unsharpFilterResult_full", unsharpFilterResult);
 
 	assert(blaze::size(unsharpFilterResult[0]) == 25);
@@ -233,7 +233,7 @@ int main() {
 	assert(unsharpFilterResult[0](2, 2) == 5);
 	assert(unsharpFilterResult[0](2, 3) == 13);
 
-	unsharpFilterResult = imfilter(Image<uint8_t,1>{ch1}, unsharpFilter, bothConstModel, false);
+	unsharpFilterResult = filter(ch1, unsharpFilter, bothConstModel, false);
 	imgprint("unsharpFilterResult_same", unsharpFilterResult);
 
 	assert(blaze::size(unsharpFilterResult[0]) == 9);
@@ -241,5 +241,8 @@ int main() {
 	assert(unsharpFilterResult[0](1, 1) == 5);
 	assert(unsharpFilterResult[0](1, 2) == 13);
 
+	imfilter<double, 1, FilterType::AVERAGE, PadDirection::BOTH, PadType::CONST> f(3, 3);
+	Channel<double> out = f(ch1);
+	chprint("out", out);
 	return 0;
 }

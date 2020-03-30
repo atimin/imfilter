@@ -25,11 +25,11 @@ int main() {
 	}
 
 	std::cout << "Created image " << rgbImg[0].rows() << "x" << rgbImg[0].columns() << " " << std::endl;
-	MotionFilter filter(10, 45);
-	PadModel<uint8_t> padmodel(PadDirection::BOTH, PadType::CONST);
+
+	imfilter<uint8_t, 3, FilterType::GAUSSIAN, PadDirection::BOTH, PadType::CONST> f(3, 3, 0.3);
 
 	auto start = system_clock::now();
-	Image<uint8_t, 3> filterImage = imfilter(rgbImg, filter, padmodel, false);
+	Image<uint8_t, 3> filterImage = f(rgbImg);
 
 	std::cout << "Filtered image for " << duration_cast<milliseconds>(system_clock::now() -start).count() << "ms" << std::endl;
 	CImg<unsigned char> out(filterImage[0].columns(), filterImage[0].rows(), 1, 3);
